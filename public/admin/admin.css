@@ -43,6 +43,13 @@ select {
 }
 label { display: grid; gap: 7px; color: var(--muted); font-size: 13px; }
 .hint { margin: 0; color: var(--muted); font-size: 13px; }
+.login-error {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #b42318;
+  background: #fff1f0;
+}
 
 .admin-shell { min-height: 100vh; }
 .login-panel {

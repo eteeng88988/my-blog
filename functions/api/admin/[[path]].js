@@ -21,6 +21,11 @@ function base64Url(buffer) {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
+async function sha256Hex(value) {
+  const hash = await crypto.subtle.digest("SHA-256", textEncoder.encode(value));
+  return [...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 async function hmac(secret, value) {
   const key = await crypto.subtle.importKey(
     "raw",
@@ -35,6 +40,19 @@ async function hmac(secret, value) {
 function cookieValue(request, name) {
   const cookie = request.headers.get("Cookie") || "";
   return cookie.split(";").map((item) => item.trim()).find((item) => item.startsWith(`${name}=`))?.slice(name.length + 1);
+}
+
+async function passwordMatches(env, password) {
+  const plainPassword = getEnv(env, "ADMIN_PASSWORD");
+  const passwordHash = getEnv(env, "ADMIN_PASSWORD_SHA256").toLowerCase();
+
+  if (!plainPassword && !passwordHash) {
+    throw new Error("\u540e\u53f0\u5bc6\u7801\u672a\u8bbe\u7f6e\uff1a\u8bf7\u5728 Cloudflare Pages \u73af\u5883\u53d8\u91cf\u4e2d\u8bbe\u7f6e ADMIN_PASSWORD \u6216 ADMIN_PASSWORD_SHA256");
+  }
+
+  if (plainPassword && password === plainPassword) return true;
+  if (passwordHash && await sha256Hex(password) === passwordHash) return true;
+  return false;
 }
 
 async function makeSession(env) {
@@ -143,8 +161,8 @@ export async function onRequest(context) {
 
     if (request.method === "POST" && action === "login") {
       const { password } = await request.json();
-      if (!getEnv(env, "ADMIN_PASSWORD") || password !== getEnv(env, "ADMIN_PASSWORD")) {
-        return json({ error: "密码错误" }, { status: 401 });
+      if (!await passwordMatches(env, password || "")) {
+        return json({ error: "\u5bc6\u7801\u9519\u8bef" }, { status: 401 });
       }
       const session = await makeSession(env);
       const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
@@ -161,7 +179,7 @@ export async function onRequest(context) {
       });
     }
 
-    if (!await verifySession(request, env)) return json({ error: "未登录" }, { status: 401 });
+    if (!await verifySession(request, env)) return json({ error: "\u672a\u767b\u5f55" }, { status: 401 });
 
     const url = new URL(request.url);
     if (request.method === "GET" && action === "session") return json({ ok: true });

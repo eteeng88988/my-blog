@@ -225,11 +225,18 @@ async function loadAllAdminData() {
 function setupLogin() {
   $("[data-login-form]").addEventListener("submit", async (event) => {
     event.preventDefault();
-    const password = new FormData(event.currentTarget).get("password");
-    await api("/login", { method: "POST", body: JSON.stringify({ password }) });
-    $("[data-login-panel]").hidden = true;
-    $("[data-dashboard]").hidden = false;
-    await loadAllAdminData();
+    const errorBox = $("[data-login-error]");
+    errorBox.hidden = true;
+    try {
+      const password = new FormData(event.currentTarget).get("password");
+      await api("/login", { method: "POST", body: JSON.stringify({ password }) });
+      $("[data-login-panel]").hidden = true;
+      $("[data-dashboard]").hidden = false;
+      await loadAllAdminData();
+    } catch (error) {
+      errorBox.textContent = error.message;
+      errorBox.hidden = false;
+    }
   });
 }
 
