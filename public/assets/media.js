@@ -44,6 +44,7 @@ async function init() {
   ]);
   document.title = `媒体库 - ${site.title}`;
   $("[data-site-title]").textContent = site.title;
+  $("[data-site-footer]").textContent = site.copyright || `© ${new Date().getFullYear()} ${site.title}`;
   renderMenu(menu);
   setupTheme(theme);
   renderMedia(media);

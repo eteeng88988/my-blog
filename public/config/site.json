@@ -3,6 +3,7 @@
   "subtitle": "Notes on projects, ideas, and web building",
   "description": "A personal blog powered by GitHub and Cloudflare.",
   "author": "Lexiao",
+  "url": "https://my-blog-e1v.pages.dev",
   "logo": "/assets/logo.svg",
   "heroImage": "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1800&q=80",
   "copyright": "2026 My Blog"

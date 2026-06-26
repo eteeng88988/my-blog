@@ -128,6 +128,7 @@ async function init() {
   if (!res.ok) throw new Error("Article not found");
 
   document.querySelector("[data-site-title]").textContent = site.title;
+  document.querySelector("[data-site-footer]").textContent = site.copyright || `© ${new Date().getFullYear()} ${site.title}`;
   renderMenu(menu);
   setupTheme(theme);
 

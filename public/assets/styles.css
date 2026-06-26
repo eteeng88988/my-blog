@@ -217,6 +217,20 @@ button, input, textarea { font: inherit; }
   cursor: pointer;
 }
 
+.site-footer {
+  width: min(1180px, calc(100vw - 40px));
+  margin: 0 auto 34px;
+  padding: 20px 0 0;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.site-footer a { color: var(--accent); font-weight: 700; }
+
 .article-shell {
   width: min(900px, calc(100vw - 40px));
   margin: 110px auto 80px;

@@ -10,6 +10,7 @@
 - `public/content/pages/`：独立页面
 - `public/content/media.json`：媒体链接库
 - `public/config/`：站点、菜单、侧边栏和主题配置
+- `public/robots.txt`、`public/sitemap.xml`、`public/feed.xml`：SEO、站点地图和 RSS 文件
 
 ## 本地运行
 
@@ -23,6 +24,8 @@ npm run dev
 ```text
 /admin/
 ```
+
+后台保存文章、页面或站点地址后，会同步更新文章索引、RSS、站点地图和 robots 文件。首次绑定自定义域名后，请在后台“站点”里把“网站地址”改成正式域名。
 
 ## 后台密码
 

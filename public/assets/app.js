@@ -53,6 +53,7 @@ function renderSite(site) {
   $("[data-site-subtitle]").textContent = site.subtitle;
   $("[data-site-description]").textContent = site.description;
   $("[data-hero]").style.backgroundImage = `url("${site.heroImage}")`;
+  $("[data-site-footer]").textContent = site.copyright || `© ${new Date().getFullYear()} ${site.title}`;
 }
 
 function renderSidebar(sidebar, posts, onFilter) {
@@ -85,7 +86,7 @@ function renderPosts(posts, activeFilter) {
         <div class="post-meta">
           <span>${post.date}</span>
           <button class="meta-button" data-category="${post.category}">${post.category}</button>
-          ${post.featured ? "<span>Featured</span>" : ""}
+          ${post.featured ? "<span>推荐</span>" : ""}
         </div>
         <h3><a href="${articleHref(post.path)}">${post.title}</a></h3>
         <p>${post.summary}</p>
@@ -182,5 +183,5 @@ async function init() {
 
 init().catch((error) => {
   console.error(error);
-  $("[data-posts]").innerHTML = `<p>Load failed: ${error.message}</p>`;
+  $("[data-posts]").innerHTML = `<p>加载失败：${error.message}</p>`;
 });

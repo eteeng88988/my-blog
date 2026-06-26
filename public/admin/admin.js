@@ -69,7 +69,89 @@ function normalizeConfig(path, values) {
       enableMotion: values.enableMotion === "true"
     };
   }
+  if (path.endsWith("site.json")) {
+    return {
+      title: values.title || "My Blog",
+      subtitle: values.subtitle || "",
+      description: values.description || "",
+      author: values.author || "",
+      url: (values.url || "").replace(/\/+$/, ""),
+      logo: values.logo || "/assets/logo.svg",
+      heroImage: values.heroImage || "",
+      copyright: values.copyright || ""
+    };
+  }
   return values;
+}
+
+function xmlEscape(value = "") {
+  return String(value).replace(/[<>&'"]/g, (char) => ({
+    "<": "&lt;",
+    ">": "&gt;",
+    "&": "&amp;",
+    "'": "&apos;",
+    '"': "&quot;"
+  })[char]);
+}
+
+function siteBase(site) {
+  return (site.url || location.origin).replace(/\/+$/, "");
+}
+
+function articleHref(path) {
+  return `/article.html?file=${encodeURIComponent(`/${path.replace(/^public\//, "")}`)}`;
+}
+
+function absoluteUrl(site, path) {
+  return `${siteBase(site)}${path}`;
+}
+
+function rssDate(date) {
+  const value = date ? new Date(`${date}T00:00:00Z`) : new Date();
+  return Number.isNaN(value.getTime()) ? new Date().toUTCString() : value.toUTCString();
+}
+
+function buildRobots(site) {
+  return `User-agent: *\nAllow: /\n\nSitemap: ${absoluteUrl(site, "/sitemap.xml")}\n`;
+}
+
+function buildSitemap(site, postItems, pageItems) {
+  const today = new Date().toISOString().slice(0, 10);
+  const urls = [
+    { loc: absoluteUrl(site, "/"), changefreq: "daily", priority: "1.0" },
+    { loc: absoluteUrl(site, "/archive.html"), changefreq: "daily", priority: "0.8" },
+    { loc: absoluteUrl(site, "/media.html"), changefreq: "weekly", priority: "0.6" },
+    ...pageItems.map((page) => ({ loc: absoluteUrl(site, articleHref(page.path)), changefreq: "monthly", priority: "0.6", lastmod: page.meta.date })),
+    ...postItems.map((post) => ({ loc: absoluteUrl(site, articleHref(post.path)), changefreq: "monthly", priority: "0.7", lastmod: post.meta.date }))
+  ];
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((url) => `  <url>\n    <loc>${xmlEscape(url.loc)}</loc>\n    <lastmod>${xmlEscape(url.lastmod || today)}</lastmod>\n    <changefreq>${url.changefreq}</changefreq>\n    <priority>${url.priority}</priority>\n  </url>`).join("\n")}\n</urlset>\n`;
+}
+
+function buildFeed(site, postItems) {
+  const items = [...postItems].sort((a, b) => (b.meta.date || "").localeCompare(a.meta.date || ""));
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n  <channel>\n    <title>${xmlEscape(site.title || "My Blog")}</title>\n    <link>${xmlEscape(siteBase(site) + "/")}</link>\n    <description>${xmlEscape(site.description || "")}</description>\n    <language>zh-CN</language>\n    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>\n${items.map((post) => {
+    const url = absoluteUrl(site, articleHref(post.path));
+    return `    <item>\n      <title>${xmlEscape(post.meta.title || post.path)}</title>\n      <link>${xmlEscape(url)}</link>\n      <guid>${xmlEscape(url)}</guid>\n      <pubDate>${rssDate(post.meta.date)}</pubDate>\n      <description>${xmlEscape(post.meta.summary || post.body.replace(/\s+/g, " ").slice(0, 160))}</description>\n    </item>`;
+  }).join("\n")}\n  </channel>\n</rss>\n`;
+}
+
+async function loadSiteConfig() {
+  const file = await api(`/file?path=${encodeURIComponent("public/config/site.json")}`);
+  return JSON.parse(file.content);
+}
+
+async function writeGeneratedFile(path, content) {
+  await api("/file", {
+    method: "PUT",
+    body: JSON.stringify({ path, content, message: `Update ${path}` })
+  });
+}
+
+async function syncGeneratedSiteFiles(siteOverride) {
+  const site = siteOverride || await loadSiteConfig();
+  await writeGeneratedFile("public/robots.txt", buildRobots(site));
+  await writeGeneratedFile("public/sitemap.xml", buildSitemap(site, posts, pages));
+  await writeGeneratedFile("public/feed.xml", buildFeed(site, posts));
 }
 
 function renderDashboard() {
@@ -279,8 +361,9 @@ function setupPostEditor() {
       body: JSON.stringify({ path, content: buildPostMarkdown(values), message: `Update ${path}` })
     });
     await syncIndex(posts, path, "public/content/posts/index.json");
-    setStatus("文章已保存到 GitHub，等待 Cloudflare 自动部署。");
     await loadPosts();
+    await syncGeneratedSiteFiles();
+    setStatus("文章、索引、RSS 和站点地图已保存到 GitHub，等待 Cloudflare 自动部署。");
     selectPost(path);
   });
 
@@ -296,6 +379,8 @@ function setupPostEditor() {
     await syncIndex(posts, null, "public/content/posts/index.json");
     activePost = null;
     await loadPosts();
+    await syncGeneratedSiteFiles();
+    setStatus("文章已删除，RSS 和站点地图已更新。");
   });
 }
 
@@ -320,8 +405,9 @@ function setupPageEditor() {
       body: JSON.stringify({ path, content: buildPageMarkdown(values), message: `Update ${path}` })
     });
     await syncIndex(pages, path, "public/content/pages/index.json");
-    setStatus("页面已保存到 GitHub，等待 Cloudflare 自动部署。");
     await loadPages();
+    await syncGeneratedSiteFiles();
+    setStatus("页面、索引和站点地图已保存到 GitHub，等待 Cloudflare 自动部署。");
     selectPage(path);
   });
 
@@ -337,6 +423,8 @@ function setupPageEditor() {
     await syncIndex(pages, null, "public/content/pages/index.json");
     activePage = null;
     await loadPages();
+    await syncGeneratedSiteFiles();
+    setStatus("页面已删除，站点地图已更新。");
   });
 }
 
@@ -345,15 +433,19 @@ function setupConfigForms() {
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const path = form.dataset.configForm;
+      const values = normalizeConfig(path, readForm(form));
       await api("/file", {
         method: "PUT",
         body: JSON.stringify({
           path,
-          content: `${JSON.stringify(normalizeConfig(path, readForm(form)), null, 2)}\n`,
+          content: `${JSON.stringify(values, null, 2)}\n`,
           message: `Update ${path}`
         })
       });
-      setStatus("配置已保存到 GitHub，等待 Cloudflare 自动部署。");
+      if (path.endsWith("site.json")) await syncGeneratedSiteFiles(values);
+      setStatus(path.endsWith("site.json")
+        ? "站点配置、RSS 和站点地图已保存到 GitHub，等待 Cloudflare 自动部署。"
+        : "配置已保存到 GitHub，等待 Cloudflare 自动部署。");
     });
   });
 }

@@ -92,6 +92,7 @@ async function init() {
     .sort((a, b) => b.date.localeCompare(a.date));
   document.title = `归档 - ${site.title}`;
   $("[data-site-title]").textContent = site.title;
+  $("[data-site-footer]").textContent = site.copyright || `© ${new Date().getFullYear()} ${site.title}`;
   renderMenu(menu);
   setupTheme(theme);
   renderArchive(posts);
