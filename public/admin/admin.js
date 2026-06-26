@@ -10,7 +10,7 @@ async function api(path, options = {}) {
     ...options
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `Request failed: ${res.status}`);
+  if (!res.ok) throw new Error(data.error || `请求失败：${res.status}`);
   return data;
 }
 
@@ -70,7 +70,7 @@ function renderPostList() {
   list.innerHTML = posts.map((post) => `
     <button class="post-item ${activePost?.path === post.path ? "active" : ""}" data-path="${post.path}">
       ${post.meta.title || post.path}
-      <small>${post.meta.date || ""} / ${post.meta.category || "General"}</small>
+      <small>${post.meta.date || ""} / ${post.meta.category || "未分类"}</small>
     </button>
   `).join("");
 
@@ -96,7 +96,7 @@ function selectPost(path) {
 }
 
 async function loadPosts() {
-  setStatus("Loading posts...");
+  setStatus("正在读取文章...");
   const files = await api("/files?prefix=public/content/posts");
   posts = await Promise.all(files.items
     .filter((item) => item.path.endsWith(".md"))
@@ -107,7 +107,7 @@ async function loadPosts() {
   posts.sort((a, b) => (b.meta.date || "").localeCompare(a.meta.date || ""));
   renderPostList();
   if (posts[0]) selectPost(posts[0].path);
-  setStatus("Posts loaded");
+  setStatus("文章已读取");
 }
 
 async function syncPostIndex(extraPath) {
@@ -197,14 +197,14 @@ function setupPostEditor() {
       body: JSON.stringify({ path, content: buildMarkdown(values), message: `Update ${path}` })
     });
     await syncPostIndex(path);
-    setStatus("Saved to GitHub. Waiting for Cloudflare deployment.");
+    setStatus("文章已保存到 GitHub，等待 Cloudflare 自动部署。");
     await loadPosts();
     selectPost(path);
   });
 
   $("[data-delete-post]").addEventListener("click", async () => {
     if (!activePost) return;
-    if (!confirm(`Delete ${activePost.meta.title || activePost.path}?`)) return;
+    if (!confirm(`确认删除 ${activePost.meta.title || activePost.path}？`)) return;
     const deletedPath = activePost.path;
     await api("/file", {
       method: "DELETE",
@@ -230,7 +230,7 @@ function setupConfigForms() {
           message: `Update ${path}`
         })
       });
-      setStatus("Config saved to GitHub. Waiting for Cloudflare deployment.");
+      setStatus("配置已保存到 GitHub，等待 Cloudflare 自动部署。");
     });
   });
 }
@@ -247,7 +247,7 @@ function setupMenuForm() {
         message: "Update menu"
       })
     });
-    setStatus("Menu saved to GitHub. Waiting for Cloudflare deployment.");
+    setStatus("菜单已保存到 GitHub，等待 Cloudflare 自动部署。");
   });
 }
 
