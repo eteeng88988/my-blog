@@ -55,7 +55,7 @@ function renderSite(site) {
   $("[data-hero]").style.backgroundImage = `url("${site.heroImage}")`;
 }
 
-function renderSidebar(sidebar, posts) {
+function renderSidebar(sidebar, posts, onFilter) {
   const tags = new Set(posts.flatMap((post) => post.tags));
   const cats = new Set(posts.map((post) => post.category));
   $("[data-sidebar-avatar]").src = sidebar.avatar;
@@ -67,11 +67,15 @@ function renderSidebar(sidebar, posts) {
   $("[data-stat-posts]").textContent = posts.length;
   $("[data-stat-tags]").textContent = tags.size;
   $("[data-stat-cats]").textContent = cats.size;
-  $("[data-tags]").innerHTML = [...tags].map((tag) => `<span class="tag"># ${tag}</span>`).join("");
+  $("[data-tags]").innerHTML = [...tags].map((tag) => `<button class="tag filter-tag" data-tag="${tag}"># ${tag}</button>`).join("");
+  $("[data-tags]").querySelectorAll("[data-tag]").forEach((button) => {
+    button.addEventListener("click", () => onFilter({ type: "tag", value: button.dataset.tag }));
+  });
 }
 
-function renderPosts(posts) {
-  $("[data-post-count]").textContent = `${posts.length} posts`;
+function renderPosts(posts, activeFilter) {
+  const suffix = activeFilter ? ` / ${activeFilter.value}` : "";
+  $("[data-post-count]").textContent = `${posts.length} 篇${suffix}`;
   $("[data-posts]").innerHTML = posts.map((post) => `
     <article class="post-card">
       <a class="post-cover" href="${articleHref(post.path)}">
@@ -80,15 +84,38 @@ function renderPosts(posts) {
       <div class="post-body">
         <div class="post-meta">
           <span>${post.date}</span>
-          <span>${post.category}</span>
+          <button class="meta-button" data-category="${post.category}">${post.category}</button>
           ${post.featured ? "<span>Featured</span>" : ""}
         </div>
         <h3><a href="${articleHref(post.path)}">${post.title}</a></h3>
         <p>${post.summary}</p>
-        <div class="tags">${post.tags.map((tag) => `<span class="tag"># ${tag}</span>`).join("")}</div>
+        <div class="tags">${post.tags.map((tag) => `<button class="tag filter-tag" data-tag="${tag}"># ${tag}</button>`).join("")}</div>
       </div>
     </article>
   `).join("");
+}
+
+function setupPostFilters(allPosts) {
+  let activeFilter = null;
+  const apply = (filter) => {
+    activeFilter = filter;
+    const posts = filter
+      ? allPosts.filter((post) => filter.type === "tag" ? post.tags.includes(filter.value) : post.category === filter.value)
+      : allPosts;
+    renderPosts(posts, activeFilter);
+    attachFilterEvents(apply);
+  };
+  attachFilterEvents(apply);
+  return apply;
+}
+
+function attachFilterEvents(apply) {
+  document.querySelectorAll("[data-tag]").forEach((button) => {
+    button.addEventListener("click", () => apply({ type: "tag", value: button.dataset.tag }));
+  });
+  document.querySelectorAll("[data-category]").forEach((button) => {
+    button.addEventListener("click", () => apply({ type: "category", value: button.dataset.category }));
+  });
 }
 
 function setupSearch(posts) {
@@ -145,8 +172,9 @@ async function init() {
 
   renderSite(site);
   renderMenu(menu);
-  renderPosts(posts);
-  renderSidebar(sidebar, posts);
+  renderPosts(posts, null);
+  const applyFilter = setupPostFilters(posts);
+  renderSidebar(sidebar, posts, applyFilter);
   setupTheme(theme);
   setupSearch(posts);
   setupBackTop();
