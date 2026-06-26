@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://my-blog-e1v.pages.dev/sitemap.xml
