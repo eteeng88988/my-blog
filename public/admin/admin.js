@@ -53,6 +53,18 @@ function readForm(form) {
   return Object.fromEntries(new FormData(form).entries());
 }
 
+function normalizeConfig(path, values) {
+  if (path.endsWith("theme.json")) {
+    return {
+      accent: values.accent || "#2f7dff",
+      darkMode: values.darkMode === "true",
+      cardRadius: Number.parseInt(values.cardRadius || "14", 10),
+      enableMotion: values.enableMotion === "true"
+    };
+  }
+  return values;
+}
+
 function renderPostList() {
   const list = $("[data-post-list]");
   list.innerHTML = posts.map((post) => `
@@ -119,6 +131,24 @@ async function loadConfig(form) {
   fillForm(form, JSON.parse(file.content));
 }
 
+async function loadMenu() {
+  const form = $("[data-menu-form]");
+  const file = await api(`/file?path=${encodeURIComponent("public/config/menu.json")}`);
+  const items = JSON.parse(file.content);
+  form.elements.items.value = items.map((item) => `${item.label}|${item.href}`).join("\n");
+}
+
+function parseMenuItems(value) {
+  return value.split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [label, ...hrefParts] = line.split("|");
+      return { label: label.trim(), href: hrefParts.join("|").trim() || "/" };
+    })
+    .filter((item) => item.label);
+}
+
 function setupLogin() {
   $("[data-login-form]").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -127,7 +157,7 @@ function setupLogin() {
     $("[data-login-panel]").hidden = true;
     $("[data-dashboard]").hidden = false;
     await loadPosts();
-    await Promise.all($$("[data-config-form]").map(loadConfig));
+    await Promise.all([...$$("[data-config-form]").map(loadConfig), loadMenu()]);
   });
 }
 
@@ -196,12 +226,28 @@ function setupConfigForms() {
         method: "PUT",
         body: JSON.stringify({
           path,
-          content: `${JSON.stringify(readForm(form), null, 2)}\n`,
+          content: `${JSON.stringify(normalizeConfig(path, readForm(form)), null, 2)}\n`,
           message: `Update ${path}`
         })
       });
       setStatus("Config saved to GitHub. Waiting for Cloudflare deployment.");
     });
+  });
+}
+
+function setupMenuForm() {
+  const form = $("[data-menu-form]");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await api("/file", {
+      method: "PUT",
+      body: JSON.stringify({
+        path: "public/config/menu.json",
+        content: `${JSON.stringify(parseMenuItems(form.elements.items.value), null, 2)}\n`,
+        message: "Update menu"
+      })
+    });
+    setStatus("Menu saved to GitHub. Waiting for Cloudflare deployment.");
   });
 }
 
@@ -218,7 +264,7 @@ async function restoreSession() {
     $("[data-login-panel]").hidden = true;
     $("[data-dashboard]").hidden = false;
     await loadPosts();
-    await Promise.all($$("[data-config-form]").map(loadConfig));
+    await Promise.all([...$$("[data-config-form]").map(loadConfig), loadMenu()]);
   } catch {
     $("[data-login-panel]").hidden = false;
   }
@@ -228,5 +274,6 @@ setupLogin();
 setupTabs();
 setupPostEditor();
 setupConfigForms();
+setupMenuForm();
 setupLogout();
 restoreSession();

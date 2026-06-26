@@ -32,7 +32,16 @@ input, textarea {
   color: var(--text);
   background: #fff;
 }
+select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text);
+  background: #fff;
+}
 label { display: grid; gap: 7px; color: var(--muted); font-size: 13px; }
+.hint { margin: 0; color: var(--muted); font-size: 13px; }
 
 .admin-shell { min-height: 100vh; }
 .login-panel {

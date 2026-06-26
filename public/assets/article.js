@@ -1,6 +1,12 @@
 const article = document.querySelector("[data-article]");
 const toggle = document.querySelector("[data-theme-toggle]");
 
+async function getJson(path) {
+  const res = await fetch(path, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Cannot load ${path}`);
+  return res.json();
+}
+
 function parseFrontMatter(markdown) {
   const match = markdown.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
   const meta = {};
@@ -37,11 +43,38 @@ function markdownToHtml(markdown) {
   }).join("");
 }
 
+function renderMenu(menu) {
+  document.querySelector("[data-menu]").innerHTML = menu.map((item) => `<a href="${item.href}">${item.label}</a>`).join("");
+}
+
+function setupTheme(theme) {
+  document.documentElement.style.setProperty("--accent", theme.accent || "#2f7dff");
+  if (theme.cardRadius) document.documentElement.style.setProperty("--card-radius", `${parseInt(theme.cardRadius, 10)}px`);
+  const saved = localStorage.getItem("theme");
+  const defaultDark = theme.darkMode === true || theme.darkMode === "true";
+  if (saved === "dark" || (!saved && defaultDark)) document.body.classList.add("dark");
+  toggle.addEventListener("click", () => {
+    document.body.classList.toggle("dark");
+    localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
+  });
+}
+
 async function init() {
   const file = new URL(location.href).searchParams.get("file");
-  if (!file || !file.startsWith("/content/posts/")) throw new Error("Invalid article path");
-  const res = await fetch(file);
+  const validPath = file?.startsWith("/content/posts/") || file?.startsWith("/content/pages/");
+  if (!file || !validPath) throw new Error("Invalid article path");
+  const [site, menu, theme, res] = await Promise.all([
+    getJson("/config/site.json"),
+    getJson("/config/menu.json"),
+    getJson("/config/theme.json"),
+    fetch(file, { cache: "no-store" })
+  ]);
   if (!res.ok) throw new Error("Article not found");
+
+  document.querySelector("[data-site-title]").textContent = site.title;
+  renderMenu(menu);
+  setupTheme(theme);
+
   const { meta, body } = parseFrontMatter(await res.text());
   document.title = meta.title || "Article";
   article.innerHTML = `
@@ -52,12 +85,6 @@ async function init() {
     <div class="article-content">${markdownToHtml(body)}</div>
   `;
 }
-
-if (localStorage.getItem("theme") === "dark") document.body.classList.add("dark");
-toggle.addEventListener("click", () => {
-  document.body.classList.toggle("dark");
-  localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
-});
 
 init().catch((error) => {
   article.textContent = `Load failed: ${error.message}`;

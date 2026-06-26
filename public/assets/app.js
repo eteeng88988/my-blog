@@ -1,13 +1,13 @@
 const $ = (selector) => document.querySelector(selector);
 
 async function getJson(path) {
-  const res = await fetch(path);
+  const res = await fetch(path, { cache: "no-store" });
   if (!res.ok) throw new Error(`Cannot load ${path}`);
   return res.json();
 }
 
 async function getText(path) {
-  const res = await fetch(path);
+  const res = await fetch(path, { cache: "no-store" });
   if (!res.ok) throw new Error(`Cannot load ${path}`);
   return res.text();
 }
@@ -117,8 +117,10 @@ function setupSearch(posts) {
 
 function setupTheme(theme) {
   document.documentElement.style.setProperty("--accent", theme.accent || "#2f7dff");
+  if (theme.cardRadius) document.documentElement.style.setProperty("--card-radius", `${parseInt(theme.cardRadius, 10)}px`);
   const saved = localStorage.getItem("theme");
-  if (saved === "dark" || (!saved && theme.darkMode)) document.body.classList.add("dark");
+  const defaultDark = theme.darkMode === true || theme.darkMode === "true";
+  if (saved === "dark" || (!saved && defaultDark)) document.body.classList.add("dark");
   $("[data-theme-toggle]").addEventListener("click", () => {
     document.body.classList.toggle("dark");
     localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");

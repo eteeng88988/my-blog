@@ -3,36 +3,38 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>博客后台</title>
+    <title>Blog Admin</title>
     <link rel="stylesheet" href="/admin/admin.css">
   </head>
   <body>
     <main class="admin-shell">
       <section class="login-panel" data-login-panel>
-        <h1>博客后台</h1>
-        <p>登录后可编辑文章、站点配置和侧边栏内容。</p>
+        <h1>Blog Admin</h1>
+        <p>Sign in to edit posts, menus, site settings, theme, and sidebar content.</p>
         <form data-login-form>
-          <input name="password" type="password" placeholder="后台密码" required>
-          <button type="submit">登录</button>
+          <input name="password" type="password" placeholder="Admin password" required>
+          <button type="submit">Sign in</button>
         </form>
       </section>
 
       <section class="dashboard" data-dashboard hidden>
         <aside class="admin-nav">
           <h1>My Blog</h1>
-          <button data-tab="posts" class="active">文章</button>
-          <button data-tab="site">站点</button>
-          <button data-tab="sidebar">侧边栏</button>
-          <button data-logout>退出</button>
+          <button data-tab="posts" class="active">Posts</button>
+          <button data-tab="menu">Menu</button>
+          <button data-tab="site">Site</button>
+          <button data-tab="theme">Theme</button>
+          <button data-tab="sidebar">Sidebar</button>
+          <button data-logout>Logout</button>
         </aside>
 
         <section class="workspace">
           <div class="toolbar">
             <div>
-              <h2 data-panel-title>文章</h2>
-              <p data-status>已连接本地后台</p>
+              <h2 data-panel-title>Posts</h2>
+              <p data-status>Ready</p>
             </div>
-            <button data-new-post>新文章</button>
+            <button data-new-post>New post</button>
           </div>
 
           <div class="panel" data-panel="posts">
@@ -40,39 +42,67 @@
               <div class="list" data-post-list></div>
               <form class="editor" data-post-form>
                 <input name="path" type="hidden">
-                <label>标题<input name="title" required></label>
-                <label>日期<input name="date" type="date" required></label>
-                <label>分类<input name="category"></label>
-                <label>标签<input name="tags" placeholder="Cloudflare,GitHub"></label>
-                <label>封面图<input name="cover"></label>
-                <label>摘要<textarea name="summary" rows="3"></textarea></label>
-                <label>正文<textarea name="body" rows="14"></textarea></label>
+                <label>Title<input name="title" required></label>
+                <label>Date<input name="date" type="date" required></label>
+                <label>Category<input name="category"></label>
+                <label>Tags<input name="tags" placeholder="Cloudflare,GitHub"></label>
+                <label>Cover image<input name="cover"></label>
+                <label>Summary<textarea name="summary" rows="3"></textarea></label>
+                <label>Body<textarea name="body" rows="14"></textarea></label>
                 <div class="editor-actions">
-                  <button type="submit">保存文章</button>
-                  <button type="button" data-delete-post>删除</button>
+                  <button type="submit">Save post</button>
+                  <button type="button" data-delete-post>Delete</button>
                 </div>
               </form>
             </div>
           </div>
 
+          <form class="panel config-form" data-panel="menu" data-menu-form hidden>
+            <label>
+              Menu items
+              <textarea name="items" rows="8" placeholder="Home|/&#10;Archive|/#posts&#10;Admin|/admin/"></textarea>
+            </label>
+            <p class="hint">Use one item per line: label|link</p>
+            <button type="submit">Save menu</button>
+          </form>
+
           <form class="panel config-form" data-panel="site" data-config-form="public/config/site.json" hidden>
-            <label>网站标题<input name="title"></label>
-            <label>副标题<input name="subtitle"></label>
-            <label>描述<textarea name="description" rows="3"></textarea></label>
-            <label>作者<input name="author"></label>
-            <label>头图<input name="heroImage"></label>
-            <label>版权<input name="copyright"></label>
-            <button type="submit">保存站点配置</button>
+            <label>Site title<input name="title"></label>
+            <label>Subtitle<input name="subtitle"></label>
+            <label>Description<textarea name="description" rows="3"></textarea></label>
+            <label>Author<input name="author"></label>
+            <label>Logo<input name="logo"></label>
+            <label>Hero image<input name="heroImage"></label>
+            <label>Copyright<input name="copyright"></label>
+            <button type="submit">Save site settings</button>
+          </form>
+
+          <form class="panel config-form" data-panel="theme" data-config-form="public/config/theme.json" hidden>
+            <label>Accent color<input name="accent" placeholder="#2f7dff"></label>
+            <label>Default dark mode
+              <select name="darkMode">
+                <option value="true">Enabled</option>
+                <option value="false">Disabled</option>
+              </select>
+            </label>
+            <label>Card radius<input name="cardRadius" type="number" min="0" max="32"></label>
+            <label>Motion effects
+              <select name="enableMotion">
+                <option value="true">Enabled</option>
+                <option value="false">Disabled</option>
+              </select>
+            </label>
+            <button type="submit">Save theme</button>
           </form>
 
           <form class="panel config-form" data-panel="sidebar" data-config-form="public/config/sidebar.json" hidden>
-            <label>头像<input name="avatar"></label>
-            <label>昵称<input name="name"></label>
-            <label>简介<textarea name="bio" rows="3"></textarea></label>
+            <label>Avatar<input name="avatar"></label>
+            <label>Name<input name="name"></label>
+            <label>Bio<textarea name="bio" rows="3"></textarea></label>
             <label>GitHub<input name="github"></label>
-            <label>邮箱<input name="email"></label>
-            <label>公告<textarea name="notice" rows="4"></textarea></label>
-            <button type="submit">保存侧边栏</button>
+            <label>Email<input name="email"></label>
+            <label>Notice<textarea name="notice" rows="4"></textarea></label>
+            <button type="submit">Save sidebar</button>
           </form>
         </section>
       </section>
