@@ -231,6 +231,33 @@ button, input, textarea { font: inherit; }
   font-size: 17px;
 }
 .article-content p { color: var(--muted); }
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+.media-item {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 86%, transparent);
+}
+.media-item img, .media-file {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.media-file {
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  font-weight: 700;
+}
+.media-item div { padding: 14px; }
+.media-item h3 { margin: 0 0 6px; }
+.media-item p { min-height: 42px; margin: 0 0 10px; color: var(--muted); line-height: 1.6; }
+.media-item a { color: var(--accent); font-weight: 700; }
 
 @media (max-width: 880px) {
   .site-header { height: auto; min-height: 64px; flex-wrap: wrap; padding: 12px 18px; }

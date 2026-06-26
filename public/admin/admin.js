@@ -2,7 +2,9 @@ const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 
 let posts = [];
+let pages = [];
 let activePost = null;
+let activePage = null;
 
 async function api(path, options = {}) {
   const res = await fetch(`/api/admin${path}`, {
@@ -18,10 +20,10 @@ function setStatus(message) {
   $("[data-status]").textContent = message;
 }
 
-function slugify(title) {
+function slugify(title, fallback) {
   return title.trim().toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, "-")
-    .replace(/^-+|-+$/g, "") || `post-${Date.now()}`;
+    .replace(/^-+|-+$/g, "") || `${fallback}-${Date.now()}`;
 }
 
 function parseFrontMatter(markdown, path) {
@@ -39,8 +41,12 @@ function parseFrontMatter(markdown, path) {
   return { path, meta, body };
 }
 
-function buildMarkdown(values) {
+function buildPostMarkdown(values) {
   return `---\ntitle: ${values.title}\ndate: ${values.date}\ncategory: ${values.category}\ntags: ${values.tags}\ncover: ${values.cover}\nsummary: ${values.summary}\nfeatured: false\n---\n\n${values.body || ""}`;
+}
+
+function buildPageMarkdown(values) {
+  return `---\ntitle: ${values.title}\ndate: ${values.date}\n---\n\n${values.body || ""}`;
 }
 
 function fillForm(form, values) {
@@ -65,17 +71,17 @@ function normalizeConfig(path, values) {
   return values;
 }
 
-function renderPostList() {
-  const list = $("[data-post-list]");
-  list.innerHTML = posts.map((post) => `
-    <button class="post-item ${activePost?.path === post.path ? "active" : ""}" data-path="${post.path}">
-      ${post.meta.title || post.path}
-      <small>${post.meta.date || ""} / ${post.meta.category || "未分类"}</small>
+function renderMarkdownList(items, selector, activePath, selectItem) {
+  const list = $(selector);
+  list.innerHTML = items.map((item) => `
+    <button class="post-item ${activePath === item.path ? "active" : ""}" data-path="${item.path}">
+      ${item.meta.title || item.path}
+      <small>${item.meta.date || ""} / ${item.meta.category || "页面"}</small>
     </button>
   `).join("");
 
   list.querySelectorAll("[data-path]").forEach((button) => {
-    button.addEventListener("click", () => selectPost(button.dataset.path));
+    button.addEventListener("click", () => selectItem(button.dataset.path));
   });
 }
 
@@ -92,35 +98,59 @@ function selectPost(path) {
     summary: activePost.meta.summary,
     body: activePost.body.trim()
   });
-  renderPostList();
+  renderMarkdownList(posts, "[data-post-list]", activePost.path, selectPost);
 }
 
-async function loadPosts() {
-  setStatus("正在读取文章...");
-  const files = await api("/files?prefix=public/content/posts");
-  posts = await Promise.all(files.items
+function selectPage(path) {
+  activePage = pages.find((page) => page.path === path);
+  if (!activePage) return;
+  fillForm($("[data-page-form]"), {
+    path: activePage.path,
+    title: activePage.meta.title,
+    date: activePage.meta.date,
+    body: activePage.body.trim()
+  });
+  renderMarkdownList(pages, "[data-page-list]", activePage.path, selectPage);
+}
+
+async function loadMarkdownDirectory(prefix) {
+  const files = await api(`/files?prefix=${encodeURIComponent(prefix)}`);
+  const items = await Promise.all(files.items
     .filter((item) => item.path.endsWith(".md"))
     .map(async (item) => {
       const file = await api(`/file?path=${encodeURIComponent(item.path)}`);
       return parseFrontMatter(file.content, item.path);
     }));
-  posts.sort((a, b) => (b.meta.date || "").localeCompare(a.meta.date || ""));
-  renderPostList();
+  return items.sort((a, b) => (b.meta.date || "").localeCompare(a.meta.date || ""));
+}
+
+async function loadPosts() {
+  setStatus("正在读取文章...");
+  posts = await loadMarkdownDirectory("public/content/posts");
+  renderMarkdownList(posts, "[data-post-list]", activePost?.path, selectPost);
   if (posts[0]) selectPost(posts[0].path);
   setStatus("文章已读取");
 }
 
-async function syncPostIndex(extraPath) {
+async function loadPages() {
+  setStatus("正在读取页面...");
+  pages = await loadMarkdownDirectory("public/content/pages");
+  renderMarkdownList(pages, "[data-page-list]", activePage?.path, selectPage);
+  if (pages[0]) selectPage(pages[0].path);
+  setStatus("页面已读取");
+}
+
+async function syncIndex(items, extraPath, indexPath) {
   const paths = [...new Set([
-    ...posts.map((post) => `/${post.path.replace(/^public\//, "")}`),
+    ...items.map((item) => `/${item.path.replace(/^public\//, "")}`),
     ...(extraPath ? [`/${extraPath.replace(/^public\//, "")}`] : [])
   ])].sort();
   await api("/file", {
     method: "PUT",
     body: JSON.stringify({
-      path: "public/content/posts/index.json",
+      path: indexPath,
       content: `${JSON.stringify(paths, null, 2)}\n`,
-      message: "Update post index"
+      message: `Update ${indexPath}`
     })
   });
 }
@@ -149,6 +179,39 @@ function parseMenuItems(value) {
     .filter((item) => item.label);
 }
 
+async function loadMedia() {
+  const form = $("[data-media-form]");
+  const file = await api(`/file?path=${encodeURIComponent("public/content/media.json")}`);
+  const items = JSON.parse(file.content);
+  form.elements.items.value = items.map((item) => [
+    item.name || "",
+    item.url || "",
+    item.type || "image",
+    item.note || ""
+  ].join("|")).join("\n");
+}
+
+function parseMediaItems(value) {
+  return value.split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [name, url, type = "image", ...noteParts] = line.split("|");
+      return { name: name.trim(), url: (url || "").trim(), type: type.trim(), note: noteParts.join("|").trim() };
+    })
+    .filter((item) => item.name && item.url);
+}
+
+async function loadAllAdminData() {
+  await Promise.all([
+    loadPosts(),
+    loadPages(),
+    ...$$("[data-config-form]").map(loadConfig),
+    loadMenu(),
+    loadMedia()
+  ]);
+}
+
 function setupLogin() {
   $("[data-login-form]").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -156,18 +219,19 @@ function setupLogin() {
     await api("/login", { method: "POST", body: JSON.stringify({ password }) });
     $("[data-login-panel]").hidden = true;
     $("[data-dashboard]").hidden = false;
-    await loadPosts();
-    await Promise.all([...$$("[data-config-form]").map(loadConfig), loadMenu()]);
+    await loadAllAdminData();
   });
 }
 
 function setupTabs() {
   $$("[data-tab]").forEach((button) => {
     button.addEventListener("click", () => {
+      const tab = button.dataset.tab;
       $$("[data-tab]").forEach((item) => item.classList.toggle("active", item === button));
-      $$("[data-panel]").forEach((panel) => panel.hidden = panel.dataset.panel !== button.dataset.tab);
+      $$("[data-panel]").forEach((panel) => panel.hidden = panel.dataset.panel !== tab);
       $("[data-panel-title]").textContent = button.textContent;
-      $("[data-new-post]").hidden = button.dataset.tab !== "posts";
+      $("[data-new-post]").hidden = tab !== "posts";
+      $("[data-new-page]").hidden = tab !== "pages";
     });
   });
 }
@@ -185,18 +249,18 @@ function setupPostEditor() {
       summary: "",
       body: ""
     });
-    renderPostList();
+    renderMarkdownList(posts, "[data-post-list]", "", selectPost);
   });
 
   $("[data-post-form]").addEventListener("submit", async (event) => {
     event.preventDefault();
     const values = readForm(event.currentTarget);
-    const path = values.path || `public/content/posts/${slugify(values.title)}.md`;
+    const path = values.path || `public/content/posts/${slugify(values.title, "post")}.md`;
     await api("/file", {
       method: "PUT",
-      body: JSON.stringify({ path, content: buildMarkdown(values), message: `Update ${path}` })
+      body: JSON.stringify({ path, content: buildPostMarkdown(values), message: `Update ${path}` })
     });
-    await syncPostIndex(path);
+    await syncIndex(posts, path, "public/content/posts/index.json");
     setStatus("文章已保存到 GitHub，等待 Cloudflare 自动部署。");
     await loadPosts();
     selectPost(path);
@@ -211,9 +275,50 @@ function setupPostEditor() {
       body: JSON.stringify({ path: deletedPath, message: `Delete ${deletedPath}` })
     });
     posts = posts.filter((post) => post.path !== deletedPath);
-    await syncPostIndex();
+    await syncIndex(posts, null, "public/content/posts/index.json");
     activePost = null;
     await loadPosts();
+  });
+}
+
+function setupPageEditor() {
+  $("[data-new-page]").addEventListener("click", () => {
+    activePage = null;
+    fillForm($("[data-page-form]"), {
+      path: "",
+      title: "",
+      date: new Date().toISOString().slice(0, 10),
+      body: ""
+    });
+    renderMarkdownList(pages, "[data-page-list]", "", selectPage);
+  });
+
+  $("[data-page-form]").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const values = readForm(event.currentTarget);
+    const path = values.path || `public/content/pages/${slugify(values.title, "page")}.md`;
+    await api("/file", {
+      method: "PUT",
+      body: JSON.stringify({ path, content: buildPageMarkdown(values), message: `Update ${path}` })
+    });
+    await syncIndex(pages, path, "public/content/pages/index.json");
+    setStatus("页面已保存到 GitHub，等待 Cloudflare 自动部署。");
+    await loadPages();
+    selectPage(path);
+  });
+
+  $("[data-delete-page]").addEventListener("click", async () => {
+    if (!activePage) return;
+    if (!confirm(`确认删除 ${activePage.meta.title || activePage.path}？`)) return;
+    const deletedPath = activePage.path;
+    await api("/file", {
+      method: "DELETE",
+      body: JSON.stringify({ path: deletedPath, message: `Delete ${deletedPath}` })
+    });
+    pages = pages.filter((page) => page.path !== deletedPath);
+    await syncIndex(pages, null, "public/content/pages/index.json");
+    activePage = null;
+    await loadPages();
   });
 }
 
@@ -251,6 +356,22 @@ function setupMenuForm() {
   });
 }
 
+function setupMediaForm() {
+  const form = $("[data-media-form]");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await api("/file", {
+      method: "PUT",
+      body: JSON.stringify({
+        path: "public/content/media.json",
+        content: `${JSON.stringify(parseMediaItems(form.elements.items.value), null, 2)}\n`,
+        message: "Update media links"
+      })
+    });
+    setStatus("媒体链接已保存到 GitHub，等待 Cloudflare 自动部署。");
+  });
+}
+
 function setupLogout() {
   $("[data-logout]").addEventListener("click", async () => {
     await api("/logout", { method: "POST" });
@@ -263,8 +384,7 @@ async function restoreSession() {
     await api("/session");
     $("[data-login-panel]").hidden = true;
     $("[data-dashboard]").hidden = false;
-    await loadPosts();
-    await Promise.all([...$$("[data-config-form]").map(loadConfig), loadMenu()]);
+    await loadAllAdminData();
   } catch {
     $("[data-login-panel]").hidden = false;
   }
@@ -273,7 +393,9 @@ async function restoreSession() {
 setupLogin();
 setupTabs();
 setupPostEditor();
+setupPageEditor();
 setupConfigForms();
 setupMenuForm();
+setupMediaForm();
 setupLogout();
 restoreSession();

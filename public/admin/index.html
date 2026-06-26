@@ -10,7 +10,7 @@
     <main class="admin-shell">
       <section class="login-panel" data-login-panel>
         <h1>博客后台</h1>
-        <p>登录后可编辑文章、菜单、站点设置、主题和侧边栏内容。</p>
+        <p>登录后可编辑文章、页面、菜单、媒体链接、站点设置、主题和侧边栏内容。</p>
         <form data-login-form>
           <input name="password" type="password" placeholder="后台密码" required>
           <button type="submit">登录</button>
@@ -21,7 +21,9 @@
         <aside class="admin-nav">
           <h1>My Blog</h1>
           <button data-tab="posts" class="active">文章</button>
+          <button data-tab="pages">页面</button>
           <button data-tab="menu">菜单</button>
+          <button data-tab="media">媒体</button>
           <button data-tab="site">站点</button>
           <button data-tab="theme">主题</button>
           <button data-tab="sidebar">侧边栏</button>
@@ -34,7 +36,10 @@
               <h2 data-panel-title>文章</h2>
               <p data-status>准备就绪</p>
             </div>
-            <button data-new-post>新建文章</button>
+            <div class="toolbar-actions">
+              <button data-new-post>新建文章</button>
+              <button data-new-page hidden>新建页面</button>
+            </div>
           </div>
 
           <div class="panel" data-panel="posts">
@@ -57,13 +62,38 @@
             </div>
           </div>
 
+          <div class="panel" data-panel="pages" hidden>
+            <div class="split">
+              <div class="list" data-page-list></div>
+              <form class="editor" data-page-form>
+                <input name="path" type="hidden">
+                <label>页面标题<input name="title" required></label>
+                <label>日期<input name="date" type="date" required></label>
+                <label>正文<textarea name="body" rows="18"></textarea></label>
+                <div class="editor-actions">
+                  <button type="submit">保存页面</button>
+                  <button type="button" data-delete-page>删除</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
           <form class="panel config-form" data-panel="menu" data-menu-form hidden>
             <label>
               菜单项目
-              <textarea name="items" rows="8" placeholder="首页|/&#10;归档|/#posts&#10;后台|/admin/"></textarea>
+              <textarea name="items" rows="8" placeholder="首页|/&#10;归档|/#posts&#10;关于|/article.html?file=%2Fcontent%2Fpages%2Fabout.md"></textarea>
             </label>
             <p class="hint">每行一个菜单：名称|链接</p>
             <button type="submit">保存菜单</button>
+          </form>
+
+          <form class="panel config-form" data-panel="media" data-media-form hidden>
+            <label>
+              媒体链接
+              <textarea name="items" rows="10" placeholder="头像|https://example.com/avatar.jpg|image|个人头像&#10;首页头图|https://example.com/hero.jpg|image|首页背景"></textarea>
+            </label>
+            <p class="hint">每行一个媒体：名称|链接|类型|备注。第一版先管理外部图片链接，后续可升级到 R2 上传。</p>
+            <button type="submit">保存媒体链接</button>
           </form>
 
           <form class="panel config-form" data-panel="site" data-config-form="public/config/site.json" hidden>
