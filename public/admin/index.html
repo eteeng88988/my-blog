@@ -20,7 +20,8 @@
       <section class="dashboard" data-dashboard hidden>
         <aside class="admin-nav">
           <h1>My Blog</h1>
-          <button data-tab="posts" class="active">文章</button>
+          <button data-tab="dashboard" class="active">仪表盘</button>
+          <button data-tab="posts">文章</button>
           <button data-tab="pages">页面</button>
           <button data-tab="menu">菜单</button>
           <button data-tab="media">媒体</button>
@@ -33,16 +34,42 @@
         <section class="workspace">
           <div class="toolbar">
             <div>
-              <h2 data-panel-title>文章</h2>
+              <h2 data-panel-title>仪表盘</h2>
               <p data-status>准备就绪</p>
             </div>
             <div class="toolbar-actions">
-              <button data-new-post>新建文章</button>
+              <button data-new-post hidden>新建文章</button>
               <button data-new-page hidden>新建页面</button>
             </div>
           </div>
 
-          <div class="panel" data-panel="posts">
+          <section class="panel dashboard-panel" data-panel="dashboard">
+            <div class="dashboard-grid">
+              <article>
+                <strong data-dashboard-posts>0</strong>
+                <span>文章</span>
+              </article>
+              <article>
+                <strong data-dashboard-pages>0</strong>
+                <span>页面</span>
+              </article>
+              <article>
+                <strong data-dashboard-media>0</strong>
+                <span>媒体链接</span>
+              </article>
+              <article>
+                <strong data-dashboard-tags>0</strong>
+                <span>标签</span>
+              </article>
+            </div>
+            <div class="dashboard-note">
+              <h3>同步流程</h3>
+              <p>后台保存内容后，会通过 Cloudflare Pages Functions 写入 GitHub 仓库。GitHub 产生新提交后，Cloudflare Pages 会自动重新部署前台。</p>
+              <p>如果线上页面没有马上变化，通常是 Cloudflare 正在部署或浏览器缓存尚未刷新。</p>
+            </div>
+          </section>
+
+          <div class="panel" data-panel="posts" hidden>
             <div class="split">
               <div class="list" data-post-list></div>
               <form class="editor" data-post-form>

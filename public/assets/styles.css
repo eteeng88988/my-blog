@@ -258,6 +258,38 @@ button, input, textarea { font: inherit; }
 .media-item h3 { margin: 0 0 6px; }
 .media-item p { min-height: 42px; margin: 0 0 10px; color: var(--muted); line-height: 1.6; }
 .media-item a { color: var(--accent); font-weight: 700; }
+.archive-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 20px 0 28px;
+}
+.archive-summary span {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  text-align: center;
+}
+.archive-summary strong { display: block; color: var(--text); font-size: 26px; }
+.archive-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 24px;
+  align-items: start;
+}
+.archive-list { display: grid; gap: 10px; }
+.archive-row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) 100px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.archive-row time, .archive-row span { color: var(--muted); font-size: 13px; }
+.archive-cloud { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
 
 @media (max-width: 880px) {
   .site-header { height: auto; min-height: 64px; flex-wrap: wrap; padding: 12px 18px; }
@@ -267,4 +299,5 @@ button, input, textarea { font: inherit; }
   .post-card { grid-template-columns: 1fr; }
   .post-cover { aspect-ratio: 16 / 9; min-height: 0; }
   .hero { min-height: 390px; padding-inline: 18px; }
+  .archive-summary, .archive-layout, .archive-row { grid-template-columns: 1fr; }
 }

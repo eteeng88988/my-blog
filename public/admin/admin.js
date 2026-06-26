@@ -3,6 +3,7 @@ const $$ = (selector) => [...document.querySelectorAll(selector)];
 
 let posts = [];
 let pages = [];
+let mediaItems = [];
 let activePost = null;
 let activePage = null;
 
@@ -69,6 +70,14 @@ function normalizeConfig(path, values) {
     };
   }
   return values;
+}
+
+function renderDashboard() {
+  const tags = new Set(posts.flatMap((post) => (post.meta.tags || "").split(",").map((tag) => tag.trim()).filter(Boolean)));
+  $("[data-dashboard-posts]").textContent = posts.length;
+  $("[data-dashboard-pages]").textContent = pages.length;
+  $("[data-dashboard-media]").textContent = mediaItems.length;
+  $("[data-dashboard-tags]").textContent = tags.size;
 }
 
 function renderMarkdownList(items, selector, activePath, selectItem) {
@@ -182,8 +191,8 @@ function parseMenuItems(value) {
 async function loadMedia() {
   const form = $("[data-media-form]");
   const file = await api(`/file?path=${encodeURIComponent("public/content/media.json")}`);
-  const items = JSON.parse(file.content);
-  form.elements.items.value = items.map((item) => [
+  mediaItems = JSON.parse(file.content);
+  form.elements.items.value = mediaItems.map((item) => [
     item.name || "",
     item.url || "",
     item.type || "image",
@@ -210,6 +219,7 @@ async function loadAllAdminData() {
     loadMenu(),
     loadMedia()
   ]);
+  renderDashboard();
 }
 
 function setupLogin() {
@@ -232,6 +242,7 @@ function setupTabs() {
       $("[data-panel-title]").textContent = button.textContent;
       $("[data-new-post]").hidden = tab !== "posts";
       $("[data-new-page]").hidden = tab !== "pages";
+      if (tab === "dashboard") renderDashboard();
     });
   });
 }
@@ -369,6 +380,8 @@ function setupMediaForm() {
       })
     });
     setStatus("媒体链接已保存到 GitHub，等待 Cloudflare 自动部署。");
+    mediaItems = parseMediaItems(form.elements.items.value);
+    renderDashboard();
   });
 }
 
