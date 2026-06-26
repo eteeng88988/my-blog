@@ -1,0 +1,6 @@
+[
+  { "label": "首页", "href": "/" },
+  { "label": "归档", "href": "#posts" },
+  { "label": "关于", "href": "/content/pages/about.md" },
+  { "label": "GitHub", "href": "https://github.com/eteeng88988/my-blog" }
+]

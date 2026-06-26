@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>博客后台</title>
+    <link rel="stylesheet" href="/admin/admin.css">
+  </head>
+  <body>
+    <main class="admin-shell">
+      <section class="login-panel" data-login-panel>
+        <h1>博客后台</h1>
+        <p>登录后可编辑文章、站点配置和侧边栏内容。</p>
+        <form data-login-form>
+          <input name="password" type="password" placeholder="后台密码" required>
+          <button type="submit">登录</button>
+        </form>
+      </section>
+
+      <section class="dashboard" data-dashboard hidden>
+        <aside class="admin-nav">
+          <h1>My Blog</h1>
+          <button data-tab="posts" class="active">文章</button>
+          <button data-tab="site">站点</button>
+          <button data-tab="sidebar">侧边栏</button>
+          <button data-logout>退出</button>
+        </aside>
+
+        <section class="workspace">
+          <div class="toolbar">
+            <div>
+              <h2 data-panel-title>文章</h2>
+              <p data-status>已连接本地后台</p>
+            </div>
+            <button data-new-post>新文章</button>
+          </div>
+
+          <div class="panel" data-panel="posts">
+            <div class="split">
+              <div class="list" data-post-list></div>
+              <form class="editor" data-post-form>
+                <input name="path" type="hidden">
+                <label>标题<input name="title" required></label>
+                <label>日期<input name="date" type="date" required></label>
+                <label>分类<input name="category"></label>
+                <label>标签<input name="tags" placeholder="Cloudflare,GitHub"></label>
+                <label>封面图<input name="cover"></label>
+                <label>摘要<textarea name="summary" rows="3"></textarea></label>
+                <label>正文<textarea name="body" rows="14"></textarea></label>
+                <div class="editor-actions">
+                  <button type="submit">保存文章</button>
+                  <button type="button" data-delete-post>删除</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <form class="panel config-form" data-panel="site" data-config-form="public/config/site.json" hidden>
+            <label>网站标题<input name="title"></label>
+            <label>副标题<input name="subtitle"></label>
+            <label>描述<textarea name="description" rows="3"></textarea></label>
+            <label>作者<input name="author"></label>
+            <label>头图<input name="heroImage"></label>
+            <label>版权<input name="copyright"></label>
+            <button type="submit">保存站点配置</button>
+          </form>
+
+          <form class="panel config-form" data-panel="sidebar" data-config-form="public/config/sidebar.json" hidden>
+            <label>头像<input name="avatar"></label>
+            <label>昵称<input name="name"></label>
+            <label>简介<textarea name="bio" rows="3"></textarea></label>
+            <label>GitHub<input name="github"></label>
+            <label>邮箱<input name="email"></label>
+            <label>公告<textarea name="notice" rows="4"></textarea></label>
+            <button type="submit">保存侧边栏</button>
+          </form>
+        </section>
+      </section>
+    </main>
+    <script src="/admin/admin.js" type="module"></script>
+  </body>
+</html>

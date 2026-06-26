@@ -1,0 +1,8 @@
+{
+  "avatar": "https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=320&q=80",
+  "name": "Lexiao",
+  "bio": "Building a personal publishing space with simple, stable tools.",
+  "github": "https://github.com/eteeng88988",
+  "email": "hello@example.com",
+  "notice": "Admin edits write back to GitHub, then Cloudflare Pages redeploys automatically."
+}

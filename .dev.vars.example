@@ -1,0 +1,6 @@
+ADMIN_PASSWORD="change-this-password"
+SESSION_SECRET="change-this-to-a-long-random-string"
+GITHUB_TOKEN="github_pat_or_classic_token"
+GITHUB_OWNER="eteeng88988"
+GITHUB_REPO="my-blog"
+GITHUB_BRANCH="main"

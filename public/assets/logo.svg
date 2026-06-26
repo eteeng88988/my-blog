@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" role="img" aria-label="My Blog">
+  <rect width="96" height="96" rx="24" fill="#151a2d"/>
+  <path d="M25 62V29h10l13 17 13-17h10v33H60V45L49 59h-2L36 45v17H25z" fill="#fff"/>
+  <circle cx="71" cy="26" r="7" fill="#2f7dff"/>
+</svg>

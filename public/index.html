@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>My Blog</title>
+    <meta name="description" content="一个由 GitHub 和 Cloudflare 驱动的个人博客。">
+    <link rel="icon" href="/assets/logo.svg">
+    <link rel="stylesheet" href="/assets/styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img src="/assets/logo.svg" alt="">
+        <span data-site-title>My Blog</span>
+      </a>
+      <nav class="nav" data-menu></nav>
+      <div class="header-actions">
+        <button class="icon-button" data-search-open title="搜索">⌕</button>
+        <button class="icon-button" data-theme-toggle title="切换深色模式">◐</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero" data-hero>
+        <div class="hero-content">
+          <p class="eyebrow">GitHub + Cloudflare</p>
+          <h1 data-site-subtitle>记录技术、想法和项目进展</h1>
+          <p data-site-description>一个由 GitHub 和 Cloudflare 驱动的个人博客。</p>
+        </div>
+      </section>
+
+      <section class="layout" id="posts">
+        <div class="feed">
+          <div class="section-title">
+            <h2>最新文章</h2>
+            <span data-post-count>0 篇</span>
+          </div>
+          <div class="post-list" data-posts></div>
+        </div>
+
+        <aside class="sidebar">
+          <section class="profile card">
+            <img class="avatar" data-sidebar-avatar alt="">
+            <h3 data-sidebar-name>Lexiao</h3>
+            <p data-sidebar-bio></p>
+            <div class="stats">
+              <span><strong data-stat-posts>0</strong>文章</span>
+              <span><strong data-stat-tags>0</strong>标签</span>
+              <span><strong data-stat-cats>0</strong>分类</span>
+            </div>
+            <div class="profile-links">
+              <a data-sidebar-github target="_blank" rel="noreferrer">GitHub</a>
+              <a data-sidebar-email>邮箱</a>
+            </div>
+          </section>
+          <section class="card notice">
+            <h3>公告</h3>
+            <p data-sidebar-notice></p>
+          </section>
+          <section class="card">
+            <h3>标签</h3>
+            <div class="tag-cloud" data-tags></div>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <dialog class="search-dialog" data-search-dialog>
+      <form method="dialog">
+        <button class="icon-button close" title="关闭">×</button>
+      </form>
+      <input data-search-input placeholder="搜索文章标题、摘要、标签">
+      <div class="search-results" data-search-results></div>
+    </dialog>
+
+    <button class="back-top" data-back-top title="返回顶部">↑</button>
+    <script src="/assets/app.js" type="module"></script>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "my-blog",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler pages dev public",
+    "deploy": "wrangler pages deploy public --project-name my-blog"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
