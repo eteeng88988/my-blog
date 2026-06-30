@@ -43,7 +43,7 @@ function parseFrontMatter(markdown, path) {
 }
 
 function buildPostMarkdown(values) {
-  return `---\ntitle: ${values.title}\ndate: ${values.date}\ncategory: ${values.category}\ntags: ${values.tags}\ncover: ${values.cover}\nsummary: ${values.summary}\nfeatured: false\n---\n\n${values.body || ""}`;
+  return `---\ntitle: ${values.title}\ndate: ${values.date}\nshowDate: ${values.showDate === "false" ? "false" : "true"}\ncategory: ${values.category}\nsubcategory: ${values.subcategory || ""}\ntags: ${values.tags}\ncover: ${values.cover}\nsummary: ${values.summary}\nfeatured: false\n---\n\n${values.body || ""}`;
 }
 
 function buildPageMarkdown(values) {
@@ -184,6 +184,8 @@ function selectPost(path) {
     title: activePost.meta.title,
     date: activePost.meta.date,
     category: activePost.meta.category,
+    subcategory: activePost.meta.subcategory,
+    showDate: activePost.meta.showDate === "false" ? "false" : "true",
     tags: activePost.meta.tags,
     cover: activePost.meta.cover,
     summary: activePost.meta.summary,
@@ -293,13 +295,126 @@ function parseMediaItems(value) {
     .filter((item) => item.name && item.url);
 }
 
+function listValue(value) {
+  const items = Array.isArray(value) ? value : String(value || "").split(",");
+  return items.map((item) => String(item).trim()).filter(Boolean);
+}
+
+function formatAdItem(item) {
+  return [
+    item.enabled ? "是" : "否",
+    item.slot || "global-top",
+    listValue(item.pages).join(",") || "all",
+    listValue(item.categories).join(",") || "all",
+    listValue(item.subcategories).join(",") || "all",
+    listValue(item.paths).join(","),
+    item.title || "",
+    item.url || "",
+    item.image || "",
+    item.html || item.text || ""
+  ].join("|");
+}
+
+function parseAdItems(value) {
+  return {
+    placements: value.split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line, index) => {
+        const [enabled, slot, pages, categories, subcategories, paths, title, url, image, ...contentParts] = line.split("|");
+        const content = contentParts.join("|").trim();
+        const isHtml = /<\/?[a-z][\s\S]*>/i.test(content);
+        return {
+          id: `${(slot || "ad").trim()}-${index + 1}`,
+          enabled: ["是", "true", "1", "on", "yes"].includes((enabled || "").trim().toLowerCase()),
+          slot: (slot || "global-top").trim(),
+          pages: listValue(pages || "all"),
+          categories: listValue(categories || "all"),
+          subcategories: listValue(subcategories || "all"),
+          paths: listValue(paths || ""),
+          title: (title || "").trim(),
+          text: isHtml ? "" : content,
+          url: (url || "").trim(),
+          image: (image || "").trim(),
+          html: isHtml ? content : ""
+        };
+      })
+  };
+}
+
+async function loadAds() {
+  const form = $("[data-ads-form]");
+  const file = await api(`/file?path=${encodeURIComponent("public/config/ads.json")}`);
+  const config = JSON.parse(file.content);
+  form.elements.items.value = (config.placements || []).map(formatAdItem).join("\n");
+}
+
+function normalizeAnalytics(values) {
+  return {
+    local: {
+      enabled: values.localEnabled !== "false"
+    },
+    cloudflare: {
+      enabled: values.cloudflareEnabled === "true",
+      token: values.cloudflareToken || "",
+      dashboardUrl: values.dashboardUrl || ""
+    }
+  };
+}
+
+async function loadAnalyticsConfig() {
+  const form = $("[data-analytics-form]");
+  const file = await api(`/file?path=${encodeURIComponent("public/config/analytics.json")}`);
+  const config = JSON.parse(file.content);
+  fillForm(form, {
+    localEnabled: config.local?.enabled === false ? "false" : "true",
+    cloudflareEnabled: config.cloudflare?.enabled ? "true" : "false",
+    cloudflareToken: config.cloudflare?.token || "",
+    dashboardUrl: config.cloudflare?.dashboardUrl || ""
+  });
+}
+
+function renderCountList(selector, items, emptyText = "暂无数据") {
+  const list = $(selector);
+  if (!items?.length) {
+    list.innerHTML = `<p class="hint">${emptyText}</p>`;
+    return;
+  }
+  list.innerHTML = items.map((item) => `
+    <div class="stats-row">
+      <span title="${item.name || item.day}">${item.name || item.day}</span>
+      <strong>${item.count}</strong>
+    </div>
+  `).join("");
+}
+
+async function loadStats() {
+  const stats = await api("/stats");
+  $("[data-dashboard-visits]").textContent = stats.total || 0;
+  $("[data-stats-total]").textContent = stats.total || 0;
+  $("[data-stats-today]").textContent = stats.today || 0;
+  $("[data-stats-last7]").textContent = stats.last7 || 0;
+  renderCountList("[data-stats-days]", stats.days, "还没有访问记录");
+  renderCountList("[data-stats-paths]", stats.topPaths, "还没有热门页面");
+  renderCountList("[data-stats-categories]", stats.topCategories, "还没有热门类目");
+}
+
+async function loadStorageStatus() {
+  const status = await api("/storage");
+  $("[data-dashboard-storage]").textContent = status.r2 ? "R2" : "GitHub";
+}
+
 async function loadAllAdminData() {
   await Promise.all([
     loadPosts(),
     loadPages(),
     ...$$("[data-config-form]").map(loadConfig),
     loadMenu(),
-    loadMedia()
+    loadAds(),
+    loadMedia(),
+    loadAnalyticsConfig(),
+    loadStats(),
+    loadStorageStatus()
   ]);
   renderDashboard();
 }
@@ -331,7 +446,11 @@ function setupTabs() {
       $("[data-panel-title]").textContent = button.textContent;
       $("[data-new-post]").hidden = tab !== "posts";
       $("[data-new-page]").hidden = tab !== "pages";
-      if (tab === "dashboard") renderDashboard();
+      if (tab === "dashboard") {
+        renderDashboard();
+        loadStats().catch((error) => setStatus(error.message));
+      }
+      if (tab === "stats") loadStats().catch((error) => setStatus(error.message));
     });
   });
 }
@@ -344,6 +463,8 @@ function setupPostEditor() {
       title: "",
       date: new Date().toISOString().slice(0, 10),
       category: "",
+      subcategory: "",
+      showDate: "true",
       tags: "",
       cover: "",
       summary: "",
@@ -363,7 +484,7 @@ function setupPostEditor() {
     await syncIndex(posts, path, "public/content/posts/index.json");
     await loadPosts();
     await syncGeneratedSiteFiles();
-    setStatus("文章、索引、RSS 和站点地图已保存到 GitHub，等待 Cloudflare 自动部署。");
+    setStatus("文章、索引、RSS 和站点地图已保存。R2 模式下前台会直接读取最新内容。");
     selectPost(path);
   });
 
@@ -407,7 +528,7 @@ function setupPageEditor() {
     await syncIndex(pages, path, "public/content/pages/index.json");
     await loadPages();
     await syncGeneratedSiteFiles();
-    setStatus("页面、索引和站点地图已保存到 GitHub，等待 Cloudflare 自动部署。");
+    setStatus("页面、索引和站点地图已保存。R2 模式下前台会直接读取最新内容。");
     selectPage(path);
   });
 
@@ -444,8 +565,8 @@ function setupConfigForms() {
       });
       if (path.endsWith("site.json")) await syncGeneratedSiteFiles(values);
       setStatus(path.endsWith("site.json")
-        ? "站点配置、RSS 和站点地图已保存到 GitHub，等待 Cloudflare 自动部署。"
-        : "配置已保存到 GitHub，等待 Cloudflare 自动部署。");
+        ? "站点配置、RSS 和站点地图已保存。"
+        : "配置已保存。");
     });
   });
 }
@@ -462,7 +583,23 @@ function setupMenuForm() {
         message: "Update menu"
       })
     });
-    setStatus("菜单已保存到 GitHub，等待 Cloudflare 自动部署。");
+    setStatus("菜单已保存。");
+  });
+}
+
+function setupAdsForm() {
+  const form = $("[data-ads-form]");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await api("/file", {
+      method: "PUT",
+      body: JSON.stringify({
+        path: "public/config/ads.json",
+        content: `${JSON.stringify(parseAdItems(form.elements.items.value), null, 2)}\n`,
+        message: "Update ads"
+      })
+    });
+    setStatus("广告设置已保存。关闭的广告位会在前台自动折叠。");
   });
 }
 
@@ -478,9 +615,37 @@ function setupMediaForm() {
         message: "Update media links"
       })
     });
-    setStatus("媒体链接已保存到 GitHub，等待 Cloudflare 自动部署。");
+    setStatus("媒体链接已保存。R2 模式下前台会直接读取最新内容。");
     mediaItems = parseMediaItems(form.elements.items.value);
     renderDashboard();
+  });
+}
+
+function setupAnalyticsForm() {
+  const form = $("[data-analytics-form]");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await api("/file", {
+      method: "PUT",
+      body: JSON.stringify({
+        path: "public/config/analytics.json",
+        content: `${JSON.stringify(normalizeAnalytics(readForm(form)), null, 2)}\n`,
+        message: "Update analytics settings"
+      })
+    });
+    setStatus("统计插件设置已保存。Cloudflare Web Analytics 开启后会自动注入官方脚本。");
+  });
+}
+
+function setupStatsActions() {
+  $("[data-refresh-stats]").addEventListener("click", async () => {
+    await loadStats();
+    setStatus("统计数据已刷新。");
+  });
+  $("[data-seed-r2]").addEventListener("click", async () => {
+    const result = await api("/seed-r2", { method: "POST" });
+    setStatus(`已同步 ${result.count || 0} 个静态文件到 R2。`);
+    await loadStorageStatus();
   });
 }
 
@@ -508,6 +673,9 @@ setupPostEditor();
 setupPageEditor();
 setupConfigForms();
 setupMenuForm();
+setupAdsForm();
 setupMediaForm();
+setupAnalyticsForm();
+setupStatsActions();
 setupLogout();
 restoreSession();

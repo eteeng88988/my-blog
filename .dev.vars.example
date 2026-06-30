@@ -3,7 +3,8 @@ ADMIN_PASSWORD="change-this-password"
 # Generate a hash with tools/hash-password.html or another SHA-256 tool.
 ADMIN_PASSWORD_SHA256=""
 SESSION_SECRET="change-this-to-a-long-random-string"
-GITHUB_TOKEN="github_pat_or_classic_token"
+# Optional fallback only when R2 BLOG_CONTENT is not bound.
+GITHUB_TOKEN=""
 GITHUB_OWNER="eteeng88988"
 GITHUB_REPO="my-blog"
 GITHUB_BRANCH="main"

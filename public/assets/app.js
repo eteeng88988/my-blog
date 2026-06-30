@@ -1,16 +1,6 @@
+import { getJson, getText, renderAdSlots, trackPageView } from "./runtime.js";
+
 const $ = (selector) => document.querySelector(selector);
-
-async function getJson(path) {
-  const res = await fetch(path, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Cannot load ${path}`);
-  return res.json();
-}
-
-async function getText(path) {
-  const res = await fetch(path, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Cannot load ${path}`);
-  return res.text();
-}
 
 function parseFrontMatter(markdown, path) {
   const match = markdown.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
@@ -31,6 +21,7 @@ function parseFrontMatter(markdown, path) {
     title: meta.title || "Untitled",
     date: meta.date || "",
     category: meta.category || "General",
+    subcategory: meta.subcategory || "",
     tags: (meta.tags || "").split(",").map((tag) => tag.trim()).filter(Boolean),
     cover: meta.cover || "",
     summary: meta.summary || body.replace(/\s+/g, " ").slice(0, 120),
@@ -104,6 +95,7 @@ function setupPostFilters(allPosts) {
       ? allPosts.filter((post) => filter.type === "tag" ? post.tags.includes(filter.value) : post.category === filter.value)
       : allPosts;
     renderPosts(posts, activeFilter);
+    renderAdSlots({ page: "home", category: filter?.type === "category" ? filter.value : "" });
     attachFilterEvents(apply);
   };
   attachFilterEvents(apply);
@@ -179,6 +171,8 @@ async function init() {
   setupTheme(theme);
   setupSearch(posts);
   setupBackTop();
+  await renderAdSlots({ page: "home" });
+  trackPageView({ page: "home", title: document.title });
 }
 
 init().catch((error) => {

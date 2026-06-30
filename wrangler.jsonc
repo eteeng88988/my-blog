@@ -1,10 +1,16 @@
 {
   "name": "my-blog",
   "pages_build_output_dir": "./public",
-  "compatibility_date": "2026-06-26",
+  "compatibility_date": "2026-06-16",
   "vars": {
     "GITHUB_OWNER": "eteeng88988",
     "GITHUB_REPO": "my-blog",
     "GITHUB_BRANCH": "main"
-  }
+  },
+  "r2_buckets": [
+    {
+      "binding": "BLOG_CONTENT",
+      "bucket_name": "my-blog-content"
+    }
+  ]
 }

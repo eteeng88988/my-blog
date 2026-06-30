@@ -11,6 +11,8 @@
 - `public/content/media.json`：媒体链接库
 - `public/config/`：站点、菜单、侧边栏和主题配置
 - `public/robots.txt`、`public/sitemap.xml`、`public/feed.xml`：SEO、站点地图和 RSS 文件
+- `public/config/ads.json`：广告位配置
+- `public/config/analytics.json`：本地统计和 Cloudflare Web Analytics 配置
 
 ## 本地运行
 
@@ -27,6 +29,42 @@ npm run dev
 
 后台保存文章、页面或站点地址后，会同步更新文章索引、RSS、站点地图和 robots 文件。首次绑定自定义域名后，请在后台“站点”里把“网站地址”改成正式域名。
 
+## R2 内容存储
+
+当前版本优先使用 R2 存储动态内容，绑定名为：
+
+```text
+BLOG_CONTENT
+```
+
+Cloudflare R2 bucket 名称为：
+
+```text
+my-blog-content
+```
+
+部署前请在 Cloudflare 创建同名 R2 bucket，或把 `wrangler.jsonc` 中的 `bucket_name` 改成你已有的 bucket 名称。后台登录后，可以在“仪表盘”点击“把当前静态内容同步到 R2”，把现有文章、页面、配置、RSS、Sitemap 等初始文件复制进 R2。
+
+R2 未绑定时，前台仍会读取仓库里的静态文件；后台会尽量保留旧的 GitHub 写入能力。
+
+## 广告位
+
+后台“广告”里每行一个广告，格式为：
+
+```text
+启用|广告位|页面|大类目|子类目|内容路径|标题|链接|图片|文案或 HTML
+```
+
+启用填“是”或“否”。关闭的广告位会自动折叠，不占用页面空间。
+
+支持的广告位：`global-top`、`home-top`、`category-top`、`subcategory-top`、`content-list`、`article-top`、`article-content`、`footer`。
+
+## 访客统计
+
+后台“统计”显示本地 R2 访问记录，包括近 14 天访问、今日访问、热门页面和热门类目。
+
+后台“统计设置”可以开启或关闭本地 R2 统计，也可以填入 Cloudflare Web Analytics token。开启后，前台会自动加载 Cloudflare 官方统计脚本。
+
 ## 后台密码
 
 后台密码不要写进 GitHub 代码。请在 Cloudflare Pages 项目环境变量里设置下面二选一：
@@ -38,14 +76,14 @@ npm run dev
 
 本地调试时，复制 `.dev.vars.example` 为 `.dev.vars`，再填入真实值。`.dev.vars` 已被 `.gitignore` 忽略，不会提交到 GitHub。
 
-## 必需环境变量
+## 环境变量
 
 - `ADMIN_PASSWORD` 或 `ADMIN_PASSWORD_SHA256`
 - `SESSION_SECRET`：用于签名登录 cookie 的随机字符串
-- `GITHUB_TOKEN`：有权限修改 `eteeng88988/my-blog` 的 GitHub token
-- `GITHUB_OWNER`：默认 `eteeng88988`
-- `GITHUB_REPO`：默认 `my-blog`
-- `GITHUB_BRANCH`：默认 `main`
+- `GITHUB_TOKEN`：可选。仅在 R2 未绑定、需要使用旧 GitHub 写入回退时需要
+- `GITHUB_OWNER`：可选，默认 `eteeng88988`
+- `GITHUB_REPO`：可选，默认 `my-blog`
+- `GITHUB_BRANCH`：可选，默认 `main`
 
 ## Cloudflare Pages 设置
 

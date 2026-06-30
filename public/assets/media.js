@@ -1,10 +1,6 @@
-const $ = (selector) => document.querySelector(selector);
+import { getJson, renderAdSlots, trackPageView } from "./runtime.js";
 
-async function getJson(path) {
-  const res = await fetch(path, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Cannot load ${path}`);
-  return res.json();
-}
+const $ = (selector) => document.querySelector(selector);
 
 function renderMenu(menu) {
   $("[data-menu]").innerHTML = menu.map((item) => `<a href="${item.href}">${item.label}</a>`).join("");
@@ -48,6 +44,8 @@ async function init() {
   renderMenu(menu);
   setupTheme(theme);
   renderMedia(media);
+  await renderAdSlots({ page: "media" });
+  trackPageView({ page: "media", title: document.title });
 }
 
 init().catch((error) => {

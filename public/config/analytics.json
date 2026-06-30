@@ -1,0 +1,10 @@
+{
+  "local": {
+    "enabled": true
+  },
+  "cloudflare": {
+    "enabled": false,
+    "token": "",
+    "dashboardUrl": ""
+  }
+}

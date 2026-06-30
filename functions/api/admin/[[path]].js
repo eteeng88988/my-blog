@@ -14,6 +14,33 @@ function getEnv(env, name, fallback = "") {
   return env[name] || fallback;
 }
 
+function hasR2(env) {
+  return env.BLOG_CONTENT && typeof env.BLOG_CONTENT.get === "function";
+}
+
+function cleanKey(path = "") {
+  return path.replace(/^\/+/, "").replace(/\\/g, "/").replace(/\.\.+/g, "");
+}
+
+function publicKey(path = "") {
+  const key = cleanKey(path);
+  return key.startsWith("public/") ? key : `public/${key}`;
+}
+
+function assetPath(path = "") {
+  return `/${publicKey(path).replace(/^public\//, "")}`;
+}
+
+function contentType(path) {
+  if (path.endsWith(".json")) return "application/json; charset=utf-8";
+  if (path.endsWith(".md") || path.endsWith(".txt")) return "text/plain; charset=utf-8";
+  if (path.endsWith(".xml")) return "application/xml; charset=utf-8";
+  if (path.endsWith(".html")) return "text/html; charset=utf-8";
+  if (path.endsWith(".css")) return "text/css; charset=utf-8";
+  if (path.endsWith(".js")) return "text/javascript; charset=utf-8";
+  return "application/octet-stream";
+}
+
 function base64Url(buffer) {
   const bytes = new Uint8Array(buffer);
   let binary = "";
@@ -47,7 +74,7 @@ async function passwordMatches(env, password) {
   const passwordHash = getEnv(env, "ADMIN_PASSWORD_SHA256").toLowerCase();
 
   if (!plainPassword && !passwordHash) {
-    throw new Error("\u540e\u53f0\u5bc6\u7801\u672a\u8bbe\u7f6e\uff1a\u8bf7\u5728 Cloudflare Pages \u73af\u5883\u53d8\u91cf\u4e2d\u8bbe\u7f6e ADMIN_PASSWORD \u6216 ADMIN_PASSWORD_SHA256");
+    throw new Error("后台密码未设置：请在 Cloudflare Pages 环境变量中设置 ADMIN_PASSWORD 或 ADMIN_PASSWORD_SHA256");
   }
 
   if (plainPassword && password === plainPassword) return true;
@@ -74,7 +101,7 @@ async function verifySession(request, env) {
 
 function githubHeaders(env) {
   const token = getEnv(env, "GITHUB_TOKEN");
-  if (!token) throw new Error("Missing GITHUB_TOKEN");
+  if (!token) throw new Error("缺少 GITHUB_TOKEN，也没有可用的 R2 绑定 BLOG_CONTENT");
   return {
     "Accept": "application/vnd.github+json",
     "Authorization": `Bearer ${token}`,
@@ -103,19 +130,20 @@ async function githubFetch(env, path, init = {}) {
   return data;
 }
 
-async function getFile(env, path) {
+async function getGithubFile(env, path) {
   const { branch } = repo(env);
-  const data = await githubFetch(env, `/contents/${encodeURIComponent(path).replace(/%2F/g, "/")}?ref=${branch}`);
+  const key = publicKey(path);
+  const data = await githubFetch(env, `/contents/${encodeURIComponent(key).replace(/%2F/g, "/")}?ref=${branch}`);
   return {
-    path,
+    path: key,
     sha: data.sha,
     content: data.content ? decodeURIComponent(escape(atob(data.content.replace(/\n/g, "")))) : ""
   };
 }
 
-async function listFiles(env, prefix) {
+async function listGithubFiles(env, prefix) {
   const { branch } = repo(env);
-  const data = await githubFetch(env, `/contents/${encodeURIComponent(prefix).replace(/%2F/g, "/")}?ref=${branch}`);
+  const data = await githubFetch(env, `/contents/${encodeURIComponent(cleanKey(prefix)).replace(/%2F/g, "/")}?ref=${branch}`);
   return Array.isArray(data)
     ? data.filter((item) => item.type === "file").map((item) => ({ path: item.path, sha: item.sha, name: item.name }))
     : [];
@@ -125,16 +153,17 @@ function encodeContent(content) {
   return btoa(unescape(encodeURIComponent(content)));
 }
 
-async function putFile(env, path, content, message) {
+async function putGithubFile(env, path, content, message) {
   const { branch } = repo(env);
+  const key = publicKey(path);
   let sha;
   try {
-    sha = (await getFile(env, path)).sha;
+    sha = (await getGithubFile(env, key)).sha;
   } catch {
     sha = undefined;
   }
 
-  return githubFetch(env, `/contents/${encodeURIComponent(path).replace(/%2F/g, "/")}`, {
+  return githubFetch(env, `/contents/${encodeURIComponent(key).replace(/%2F/g, "/")}`, {
     method: "PUT",
     body: JSON.stringify({
       message,
@@ -145,13 +174,210 @@ async function putFile(env, path, content, message) {
   });
 }
 
-async function deleteFile(env, path, message) {
+async function deleteGithubFile(env, path, message) {
   const { branch } = repo(env);
-  const file = await getFile(env, path);
-  return githubFetch(env, `/contents/${encodeURIComponent(path).replace(/%2F/g, "/")}`, {
+  const key = publicKey(path);
+  const file = await getGithubFile(env, key);
+  return githubFetch(env, `/contents/${encodeURIComponent(key).replace(/%2F/g, "/")}`, {
     method: "DELETE",
     body: JSON.stringify({ message, sha: file.sha, branch })
   });
+}
+
+async function fetchStaticFile(request, path) {
+  const url = new URL(assetPath(path), request.url);
+  const res = await fetch(url.toString(), { cf: { cacheTtl: 0 } });
+  if (!res.ok) throw new Error(`静态文件不存在：${assetPath(path)}`);
+  return {
+    path: publicKey(path),
+    sha: "static",
+    content: await res.text()
+  };
+}
+
+async function listStaticFiles(request, prefix) {
+  const key = cleanKey(prefix);
+  const indexPath = key.endsWith("content/posts")
+    ? "public/content/posts/index.json"
+    : key.endsWith("content/pages")
+      ? "public/content/pages/index.json"
+      : "";
+  if (!indexPath) return [];
+  const index = await fetchStaticFile(request, indexPath);
+  return JSON.parse(index.content).map((path) => ({
+    path: publicKey(path),
+    sha: "static",
+    name: path.split("/").pop()
+  }));
+}
+
+async function getFile(env, request, path) {
+  const key = publicKey(path);
+  if (hasR2(env)) {
+    const object = await env.BLOG_CONTENT.get(key);
+    if (object) return { path: key, sha: object.etag || "", content: await object.text(), source: "r2" };
+  }
+  try {
+    return { ...await fetchStaticFile(request, key), source: "static" };
+  } catch (error) {
+    return { ...await getGithubFile(env, key), source: "github" };
+  }
+}
+
+async function listFiles(env, request, prefix) {
+  const key = cleanKey(prefix);
+  if (hasR2(env)) {
+    const listed = await env.BLOG_CONTENT.list({ prefix: key });
+    const items = listed.objects
+      .filter((item) => !item.key.endsWith("/"))
+      .map((item) => ({ path: item.key, sha: item.etag || "", name: item.key.split("/").pop(), source: "r2" }));
+    if (items.length) return items;
+  }
+  try {
+    const staticItems = await listStaticFiles(request, key);
+    if (staticItems.length) return staticItems;
+  } catch {
+    // Fall through to GitHub if static indexes are unavailable.
+  }
+  return listGithubFiles(env, key);
+}
+
+async function putFile(env, path, content, message) {
+  const key = publicKey(path);
+  if (hasR2(env)) {
+    await env.BLOG_CONTENT.put(key, content, {
+      httpMetadata: { contentType: contentType(key) },
+      customMetadata: { updatedBy: "blog-admin" }
+    });
+    return { ok: true, storage: "r2" };
+  }
+  await putGithubFile(env, key, content, message);
+  return { ok: true, storage: "github" };
+}
+
+async function deleteFile(env, path, message) {
+  const key = publicKey(path);
+  if (hasR2(env)) {
+    await env.BLOG_CONTENT.delete(key);
+    return { ok: true, storage: "r2" };
+  }
+  await deleteGithubFile(env, key, message);
+  return { ok: true, storage: "github" };
+}
+
+async function seedR2(env, request) {
+  if (!hasR2(env)) throw new Error("R2 绑定 BLOG_CONTENT 未配置，无法迁移静态内容");
+  const paths = new Set([
+    "public/config/site.json",
+    "public/config/menu.json",
+    "public/config/sidebar.json",
+    "public/config/theme.json",
+    "public/config/ads.json",
+    "public/config/analytics.json",
+    "public/content/media.json",
+    "public/content/posts/index.json",
+    "public/content/pages/index.json",
+    "public/robots.txt",
+    "public/sitemap.xml",
+    "public/feed.xml"
+  ]);
+
+  for (const indexPath of ["public/content/posts/index.json", "public/content/pages/index.json"]) {
+    try {
+      const index = await fetchStaticFile(request, indexPath);
+      JSON.parse(index.content).forEach((path) => paths.add(publicKey(path)));
+    } catch {
+      // Missing seed indexes should not block the rest of the migration.
+    }
+  }
+
+  let count = 0;
+  for (const path of paths) {
+    try {
+      const file = await fetchStaticFile(request, path);
+      await env.BLOG_CONTENT.put(path, file.content, {
+        httpMetadata: { contentType: contentType(path) },
+        customMetadata: { seededBy: "blog-admin" }
+      });
+      count += 1;
+    } catch {
+      // Optional files can be absent in older deployments.
+    }
+  }
+  return { ok: true, storage: "r2", count };
+}
+
+async function listAllR2Objects(bucket, prefix) {
+  const objects = [];
+  let cursor;
+  do {
+    const listed = await bucket.list({ prefix, cursor });
+    objects.push(...listed.objects);
+    cursor = listed.truncated ? listed.cursor : undefined;
+  } while (cursor);
+  return objects;
+}
+
+function dateKey(offset = 0) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + offset);
+  return date.toISOString().slice(0, 10);
+}
+
+async function readStats(env) {
+  if (!hasR2(env)) {
+    return {
+      storage: "missing-r2",
+      total: 0,
+      today: 0,
+      last7: 0,
+      days: [],
+      topPaths: [],
+      topCategories: []
+    };
+  }
+
+  const wantedDays = Array.from({ length: 14 }, (_, index) => dateKey(-index)).reverse();
+  const events = [];
+  for (const day of wantedDays) {
+    const objects = await listAllR2Objects(env.BLOG_CONTENT, `analytics/pageviews/${day}/`);
+    for (const object of objects) {
+      const entry = await env.BLOG_CONTENT.get(object.key);
+      if (!entry) continue;
+      try {
+        events.push(JSON.parse(await entry.text()));
+      } catch {
+        // Ignore malformed legacy events.
+      }
+    }
+  }
+
+  const todayKey = dateKey();
+  const last7Set = new Set(Array.from({ length: 7 }, (_, index) => dateKey(-index)));
+  const byDay = new Map(wantedDays.map((day) => [day, 0]));
+  const byPath = new Map();
+  const byCategory = new Map();
+
+  for (const event of events) {
+    byDay.set(event.day, (byDay.get(event.day) || 0) + 1);
+    byPath.set(event.path || "/", (byPath.get(event.path || "/") || 0) + 1);
+    if (event.category) byCategory.set(event.category, (byCategory.get(event.category) || 0) + 1);
+  }
+
+  const sortCounts = (map) => [...map.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 12)
+    .map(([name, count]) => ({ name, count }));
+
+  return {
+    storage: "r2",
+    total: events.length,
+    today: events.filter((event) => event.day === todayKey).length,
+    last7: events.filter((event) => last7Set.has(event.day)).length,
+    days: [...byDay.entries()].map(([day, count]) => ({ day, count })),
+    topPaths: sortCounts(byPath),
+    topCategories: sortCounts(byCategory)
+  };
 }
 
 export async function onRequest(context) {
@@ -162,7 +388,7 @@ export async function onRequest(context) {
     if (request.method === "POST" && action === "login") {
       const { password } = await request.json();
       if (!await passwordMatches(env, password || "")) {
-        return json({ error: "\u5bc6\u7801\u9519\u8bef" }, { status: 401 });
+        return json({ error: "密码错误" }, { status: 401 });
       }
       const session = await makeSession(env);
       const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
@@ -179,25 +405,32 @@ export async function onRequest(context) {
       });
     }
 
-    if (!await verifySession(request, env)) return json({ error: "\u672a\u767b\u5f55" }, { status: 401 });
+    if (!await verifySession(request, env)) return json({ error: "未登录" }, { status: 401 });
 
     const url = new URL(request.url);
     if (request.method === "GET" && action === "session") return json({ ok: true });
+    if (request.method === "GET" && action === "storage") {
+      return json({
+        storage: hasR2(env) ? "r2" : "github",
+        r2: hasR2(env),
+        bucket: "BLOG_CONTENT"
+      });
+    }
+    if (request.method === "GET" && action === "stats") return json(await readStats(env));
+    if (request.method === "POST" && action === "seed-r2") return json(await seedR2(env, request));
     if (request.method === "GET" && action === "files") {
-      return json({ items: await listFiles(env, url.searchParams.get("prefix") || "public/content/posts") });
+      return json({ items: await listFiles(env, request, url.searchParams.get("prefix") || "public/content/posts") });
     }
     if (request.method === "GET" && action === "file") {
-      return json(await getFile(env, url.searchParams.get("path")));
+      return json(await getFile(env, request, url.searchParams.get("path")));
     }
     if (request.method === "PUT" && action === "file") {
       const body = await request.json();
-      await putFile(env, body.path, body.content, body.message || `Update ${body.path}`);
-      return json({ ok: true });
+      return json(await putFile(env, body.path, body.content, body.message || `Update ${body.path}`));
     }
     if (request.method === "DELETE" && action === "file") {
       const body = await request.json();
-      await deleteFile(env, body.path, body.message || `Delete ${body.path}`);
-      return json({ ok: true });
+      return json(await deleteFile(env, body.path, body.message || `Delete ${body.path}`));
     }
 
     return json({ error: "Not found" }, { status: 404 });

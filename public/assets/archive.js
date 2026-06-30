@@ -1,16 +1,6 @@
+import { getJson, getText, renderAdSlots, trackPageView } from "./runtime.js";
+
 const $ = (selector) => document.querySelector(selector);
-
-async function getJson(path) {
-  const res = await fetch(path, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Cannot load ${path}`);
-  return res.json();
-}
-
-async function getText(path) {
-  const res = await fetch(path, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Cannot load ${path}`);
-  return res.text();
-}
 
 function parseFrontMatter(markdown, path) {
   const match = markdown.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
@@ -96,6 +86,8 @@ async function init() {
   renderMenu(menu);
   setupTheme(theme);
   renderArchive(posts);
+  await renderAdSlots({ page: "archive" });
+  trackPageView({ page: "archive", title: document.title });
 }
 
 init().catch((error) => {

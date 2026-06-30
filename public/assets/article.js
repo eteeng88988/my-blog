@@ -1,17 +1,7 @@
+import { contentUrl, getJson, getText, renderAdSlots, trackPageView } from "./runtime.js";
+
 const article = document.querySelector("[data-article]");
 const toggle = document.querySelector("[data-theme-toggle]");
-
-async function getJson(path) {
-  const res = await fetch(path, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Cannot load ${path}`);
-  return res.json();
-}
-
-async function getText(path) {
-  const res = await fetch(path, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Cannot load ${path}`);
-  return res.text();
-}
 
 function parseFrontMatter(markdown, path = "") {
   const match = markdown.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
@@ -31,8 +21,10 @@ function parseFrontMatter(markdown, path = "") {
       title: meta.title || "Untitled",
       date: meta.date || "",
       category: meta.category || "",
+      subcategory: meta.subcategory || "",
       tags: meta.tags || "",
-      cover: meta.cover || ""
+      cover: meta.cover || "",
+      showDate: meta.showDate !== "false"
     },
     body
   };
@@ -123,7 +115,7 @@ async function init() {
     getJson("/config/menu.json"),
     getJson("/config/theme.json"),
     getJson("/content/posts/index.json"),
-    fetch(file, { cache: "no-store" })
+    fetch(contentUrl(file), { cache: "no-store" })
   ]);
   if (!res.ok) throw new Error("Article not found");
 
@@ -136,15 +128,20 @@ async function init() {
   const posts = postMarkdown.map((text, index) => parseFrontMatter(text, postFiles[index]))
     .sort((a, b) => b.meta.date.localeCompare(a.meta.date));
   const { meta, body } = parseFrontMatter(await res.text(), file);
+  const pageType = file.startsWith("/content/posts/") ? "article" : "page";
   document.title = meta.title || "Article";
   article.innerHTML = `
     <a class="article-back" href="/">返回首页</a>
     ${meta.cover ? `<img class="article-cover" src="${meta.cover}" alt="">` : ""}
-    <div class="post-meta"><span>${meta.date || ""}</span><span>${meta.category || ""}</span></div>
+    <section class="ad-region" data-ad-slot="article-top" hidden></section>
+    <div class="post-meta">${meta.showDate && meta.date ? `<span>${meta.date}</span>` : ""}<span>${meta.category || ""}</span>${meta.subcategory ? `<span>${meta.subcategory}</span>` : ""}</div>
     <h1>${meta.title || "Untitled"}</h1>
+    <section class="ad-region" data-ad-slot="article-content" hidden></section>
     <div class="article-content">${markdownToHtml(body)}</div>
     ${renderArticleExtras(file, meta, posts)}
   `;
+  await renderAdSlots({ page: pageType, path: file, category: meta.category, subcategory: meta.subcategory });
+  trackPageView({ page: pageType, path: file, title: meta.title, category: meta.category, subcategory: meta.subcategory });
 }
 
 init().catch((error) => {
