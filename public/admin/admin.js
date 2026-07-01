@@ -9,6 +9,15 @@ let categoryConfig = { items: [] };
 let adConfig = { placements: [] };
 let activePost = null;
 let activePage = null;
+let postManager = {
+  search: "",
+  status: "all",
+  category: "all",
+  subcategory: "all",
+  sort: "date-desc",
+  page: 1,
+  pageSize: 25
+};
 
 const pageOptions = [
   { value: "all", label: "全站" },
@@ -268,9 +277,10 @@ async function writeGeneratedFile(path, content) {
 
 async function syncGeneratedSiteFiles(siteOverride) {
   const site = siteOverride || await loadSiteConfig();
+  const publishedPosts = posts.filter((post) => normalizePostStatus(post.meta) !== "draft");
   await writeGeneratedFile("public/robots.txt", buildRobots(site));
-  await writeGeneratedFile("public/sitemap.xml", buildSitemap(site, posts, pages));
-  await writeGeneratedFile("public/feed.xml", buildFeed(site, posts));
+  await writeGeneratedFile("public/sitemap.xml", buildSitemap(site, publishedPosts, pages));
+  await writeGeneratedFile("public/feed.xml", buildFeed(site, publishedPosts));
 }
 
 function renderDashboard() {
@@ -295,6 +305,129 @@ function renderMarkdownList(items, selector, activePath, selectItem) {
   });
 }
 
+function normalizePostStatus(meta = {}) {
+  return meta.status === "draft" ? "draft" : "published";
+}
+
+function statusText(status) {
+  return status === "draft" ? "草稿" : "公开";
+}
+
+function postCharacterCount(post) {
+  return String(post.body || "").replace(/\s/g, "").length;
+}
+
+function postSearchText(post) {
+  return [
+    post.meta.title,
+    post.meta.summary,
+    post.meta.tags,
+    post.path,
+    ...postCategories(post.meta),
+    ...postSubcategories(post.meta)
+  ].join(" ").toLowerCase();
+}
+
+function articlePublicHref(path) {
+  return `/article.html?file=${encodeURIComponent(`/${path.replace(/^public\//, "")}`)}`;
+}
+
+function openPostEditor(title = "编辑文章") {
+  $("[data-post-form]").hidden = false;
+  $("[data-post-editor-backdrop]").hidden = false;
+  $("[data-post-editor-title]").textContent = title;
+}
+
+function closePostEditor() {
+  $("[data-post-form]").hidden = true;
+  $("[data-post-editor-backdrop]").hidden = true;
+}
+
+function renderPostFilterOptions() {
+  const categorySelect = $("[data-post-category-filter]");
+  const subcategorySelect = $("[data-post-subcategory-filter]");
+  const selectedCategory = postManager.category;
+  categorySelect.innerHTML = `<option value="all">全部大类</option>${optionList(allCategories(), selectedCategory === "all" ? [] : [selectedCategory])}`;
+  categorySelect.value = allCategories().includes(selectedCategory) ? selectedCategory : "all";
+  postManager.category = categorySelect.value;
+
+  const subcategories = postManager.category === "all" ? allSubcategories() : allSubcategories([postManager.category]);
+  subcategorySelect.innerHTML = `<option value="all">全部子类</option>${optionList(subcategories, postManager.subcategory === "all" ? [] : [postManager.subcategory])}`;
+  subcategorySelect.value = subcategories.includes(postManager.subcategory) ? postManager.subcategory : "all";
+  postManager.subcategory = subcategorySelect.value;
+}
+
+function filteredPosts() {
+  const query = postManager.search.trim().toLowerCase();
+  const filtered = posts.filter((post) => {
+    const status = normalizePostStatus(post.meta);
+    if (postManager.status !== "all" && status !== postManager.status) return false;
+    if (postManager.category !== "all" && !postCategories(post.meta).includes(postManager.category)) return false;
+    if (postManager.subcategory !== "all" && !postSubcategories(post.meta).includes(postManager.subcategory)) return false;
+    return !query || postSearchText(post).includes(query);
+  });
+  return filtered.sort((a, b) => {
+    if (postManager.sort === "date-asc") return (a.meta.date || "").localeCompare(b.meta.date || "");
+    if (postManager.sort === "title-asc") return (a.meta.title || "").localeCompare(b.meta.title || "");
+    if (postManager.sort === "status") return normalizePostStatus(a.meta).localeCompare(normalizePostStatus(b.meta)) || (b.meta.date || "").localeCompare(a.meta.date || "");
+    return (b.meta.date || "").localeCompare(a.meta.date || "");
+  });
+}
+
+function renderPostManager() {
+  const table = $("[data-post-table]");
+  if (!table) return;
+  renderPostFilterOptions();
+  const result = filteredPosts();
+  const totalPages = Math.max(1, Math.ceil(result.length / postManager.pageSize));
+  postManager.page = Math.min(Math.max(postManager.page, 1), totalPages);
+  const start = (postManager.page - 1) * postManager.pageSize;
+  const pageItems = result.slice(start, start + postManager.pageSize);
+  const draftCount = posts.filter((post) => normalizePostStatus(post.meta) === "draft").length;
+
+  $("[data-post-total]").textContent = posts.length;
+  $("[data-post-published]").textContent = posts.length - draftCount;
+  $("[data-post-drafts]").textContent = draftCount;
+  $("[data-post-filtered]").textContent = result.length;
+  $("[data-post-empty]").hidden = result.length !== 0;
+  $("[data-post-page-info]").textContent = `第 ${postManager.page} / ${totalPages} 页 · ${result.length} 篇`;
+  $("[data-post-prev]").disabled = postManager.page <= 1;
+  $("[data-post-next]").disabled = postManager.page >= totalPages;
+
+  table.innerHTML = pageItems.map((post) => {
+    const status = normalizePostStatus(post.meta);
+    const categories = postCategories(post.meta);
+    const subcategories = postSubcategories(post.meta);
+    const categoryHtml = [...categories, ...subcategories].slice(0, 5)
+      .map((item) => `<span class="mini-pill">${escapeHtml(item)}</span>`)
+      .join("");
+    return `
+      <tr class="${activePost?.path === post.path ? "active" : ""}">
+        <td>
+          <div class="title-cell">
+            <strong>${escapeHtml(post.meta.title || post.path)}</strong>
+            <small>${escapeHtml(post.path)}</small>
+          </div>
+        </td>
+        <td><span class="status-pill ${status}">${statusText(status)}</span></td>
+        <td><div class="pill-list">${categoryHtml || `<span class="muted-cell">未分类</span>`}</div></td>
+        <td class="muted-cell">${escapeHtml(post.meta.date || "")}</td>
+        <td class="muted-cell">${postCharacterCount(post)}</td>
+        <td>
+          <div class="row-actions">
+            <button type="button" class="ghost-button" data-edit-post="${escapeHtml(post.path)}">编辑</button>
+            <a class="ghost-link" href="${articlePublicHref(post.path)}" target="_blank" rel="noreferrer">预览</a>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  $$("[data-edit-post]").forEach((button) => {
+    button.addEventListener("click", () => selectPost(button.dataset.editPost));
+  });
+}
+
 function selectPost(path) {
   activePost = posts.find((post) => post.path === path);
   if (!activePost) return;
@@ -313,7 +446,11 @@ function selectPost(path) {
     status: activePost.meta.status || "published",
     body: activePost.body.trim()
   });
-  renderMarkdownList(posts, "[data-post-list]", activePost.path, selectPost);
+  $("[data-post-editor-path]").textContent = activePost.path;
+  $("[data-preview-post]").href = articlePublicHref(activePost.path);
+  $("[data-preview-post]").hidden = false;
+  openPostEditor("编辑文章");
+  renderPostManager();
 }
 
 function selectPage(path) {
@@ -342,8 +479,8 @@ async function loadMarkdownDirectory(prefix) {
 async function loadPosts() {
   setStatus("正在读取文章...");
   posts = await loadMarkdownDirectory("public/content/posts");
-  renderMarkdownList(posts, "[data-post-list]", activePost?.path, selectPost);
-  if (posts[0]) selectPost(posts[0].path);
+  if (activePost) activePost = posts.find((post) => post.path === activePost.path) || null;
+  renderPostManager();
   setStatus("文章已读取");
 }
 
@@ -727,7 +864,11 @@ function setupPostEditor() {
       status: "published",
       body: ""
     });
-    renderMarkdownList(posts, "[data-post-list]", "", selectPost);
+    $("[data-post-editor-path]").textContent = "新文章";
+    $("[data-preview-post]").removeAttribute("href");
+    $("[data-preview-post]").hidden = true;
+    openPostEditor("新建文章");
+    renderPostManager();
   });
 
   $("[data-post-form]").addEventListener("submit", async (event) => {
@@ -761,10 +902,48 @@ function setupPostEditor() {
     posts = posts.filter((post) => post.path !== deletedPath);
     await syncIndex(posts, null, "public/content/posts/index.json");
     activePost = null;
+    closePostEditor();
     await loadPosts();
     await syncGeneratedSiteFiles();
     setStatus("文章已删除，RSS 和站点地图已更新。");
   });
+}
+
+function setupPostManager() {
+  const search = $("[data-post-search]");
+  const status = $("[data-post-status-filter]");
+  const category = $("[data-post-category-filter]");
+  const subcategory = $("[data-post-subcategory-filter]");
+  const sort = $("[data-post-sort]");
+  const update = () => {
+    postManager.search = search.value;
+    postManager.status = status.value;
+    postManager.category = category.value;
+    postManager.subcategory = subcategory.value;
+    postManager.sort = sort.value;
+    postManager.page = 1;
+    renderPostManager();
+  };
+  search.addEventListener("input", update);
+  status.addEventListener("change", update);
+  category.addEventListener("change", () => {
+    postManager.category = category.value;
+    postManager.subcategory = "all";
+    postManager.page = 1;
+    renderPostManager();
+  });
+  subcategory.addEventListener("change", update);
+  sort.addEventListener("change", update);
+  $("[data-post-prev]").addEventListener("click", () => {
+    postManager.page -= 1;
+    renderPostManager();
+  });
+  $("[data-post-next]").addEventListener("click", () => {
+    postManager.page += 1;
+    renderPostManager();
+  });
+  $("[data-close-post-editor]").addEventListener("click", closePostEditor);
+  $("[data-post-editor-backdrop]").addEventListener("click", closePostEditor);
 }
 
 function setupPageEditor() {
@@ -986,6 +1165,7 @@ async function restoreSession() {
 
 setupLogin();
 setupTabs();
+setupPostManager();
 setupPostEditor();
 setupPageEditor();
 setupConfigForms();

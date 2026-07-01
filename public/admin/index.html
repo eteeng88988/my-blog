@@ -83,43 +83,108 @@
             </div>
           </section>
 
-          <div class="panel" data-panel="posts" hidden>
-            <div class="split">
-              <div class="list" data-post-list></div>
-              <form class="editor" data-post-form>
+          <div class="panel post-manager" data-panel="posts" hidden>
+            <section class="manager-head">
+              <div>
+                <h3>文章管理</h3>
+                <p>按状态、分类和关键词快速定位文章，点“编辑”再打开完整表单。</p>
+              </div>
+              <div class="manager-metrics">
+                <span><strong data-post-total>0</strong>全部</span>
+                <span><strong data-post-published>0</strong>公开</span>
+                <span><strong data-post-drafts>0</strong>草稿</span>
+                <span><strong data-post-filtered>0</strong>当前结果</span>
+              </div>
+            </section>
+
+            <section class="manager-filters" aria-label="文章筛选">
+              <label>搜索<input data-post-search placeholder="标题、摘要、分类、路径"></label>
+              <label>状态
+                <select data-post-status-filter>
+                  <option value="all">全部状态</option>
+                  <option value="published">公开</option>
+                  <option value="draft">草稿</option>
+                </select>
+              </label>
+              <label>大类<select data-post-category-filter></select></label>
+              <label>子类<select data-post-subcategory-filter></select></label>
+              <label>排序
+                <select data-post-sort>
+                  <option value="date-desc">最新优先</option>
+                  <option value="date-asc">最旧优先</option>
+                  <option value="title-asc">标题 A-Z</option>
+                  <option value="status">状态</option>
+                </select>
+              </label>
+            </section>
+
+            <section class="table-shell">
+              <table class="post-table">
+                <thead>
+                  <tr>
+                    <th>文章</th>
+                    <th>状态</th>
+                    <th>分类</th>
+                    <th>日期</th>
+                    <th>字数</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody data-post-table></tbody>
+              </table>
+              <div class="empty-state" data-post-empty hidden>没有找到符合条件的文章。</div>
+            </section>
+
+            <section class="manager-pagination">
+              <button type="button" class="ghost-button" data-post-prev>上一页</button>
+              <span data-post-page-info>第 1 页</span>
+              <button type="button" class="ghost-button" data-post-next>下一页</button>
+            </section>
+
+            <div class="editor-backdrop" data-post-editor-backdrop hidden></div>
+            <form class="editor editor-drawer" data-post-form hidden>
+                <div class="drawer-head">
+                  <div>
+                    <strong data-post-editor-title>编辑文章</strong>
+                    <span data-post-editor-path></span>
+                  </div>
+                  <button type="button" class="ghost-button" data-close-post-editor>关闭</button>
+                </div>
                 <input name="path" type="hidden">
-                <label>标题<input name="title" required></label>
-                <label>日期<input name="date" type="date" required></label>
-                <label>分类<select name="categories" multiple size="7"></select></label>
-                <label>子类目<select name="subcategories" multiple size="7"></select></label>
-                <label>文章页显示时间
-                  <select name="showDate">
-                    <option value="true">显示</option>
-                    <option value="false">不显示</option>
-                  </select>
-                </label>
-                <label>推荐
-                  <select name="featured">
-                    <option value="false">否</option>
-                    <option value="true">是</option>
-                  </select>
-                </label>
-                <label>发布状态
-                  <select name="status">
-                    <option value="published">公开</option>
-                    <option value="draft">草稿</option>
-                  </select>
-                </label>
-                <label>标签<input name="tags" placeholder="Cloudflare,GitHub"></label>
+                <div class="editor-grid">
+                  <label>标题<input name="title" required></label>
+                  <label>日期<input name="date" type="date" required></label>
+                  <label>分类<select name="categories" multiple size="7"></select></label>
+                  <label>子类目<select name="subcategories" multiple size="7"></select></label>
+                  <label>文章页显示时间
+                    <select name="showDate">
+                      <option value="true">显示</option>
+                      <option value="false">不显示</option>
+                    </select>
+                  </label>
+                  <label>推荐
+                    <select name="featured">
+                      <option value="false">否</option>
+                      <option value="true">是</option>
+                    </select>
+                  </label>
+                  <label>发布状态
+                    <select name="status">
+                      <option value="published">公开</option>
+                      <option value="draft">草稿</option>
+                    </select>
+                  </label>
+                  <label>标签<input name="tags" placeholder="Cloudflare,GitHub"></label>
+                </div>
                 <label>封面图<input name="cover"></label>
                 <label>摘要<textarea name="summary" rows="3"></textarea></label>
-                <label>正文<textarea name="body" rows="14"></textarea></label>
+                <label>正文<textarea name="body" rows="16"></textarea></label>
                 <div class="editor-actions">
                   <button type="submit">保存文章</button>
+                  <a class="ghost-link" data-preview-post target="_blank" rel="noreferrer">预览</a>
                   <button type="button" data-delete-post>删除</button>
                 </div>
               </form>
-            </div>
           </div>
 
           <div class="panel" data-panel="pages" hidden>
