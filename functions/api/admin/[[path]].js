@@ -274,6 +274,7 @@ async function seedR2(env, request) {
     "public/config/theme.json",
     "public/config/ads.json",
     "public/config/analytics.json",
+    "public/config/categories.json",
     "public/content/media.json",
     "public/content/posts/index.json",
     "public/content/pages/index.json",

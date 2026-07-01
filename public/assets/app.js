@@ -2,6 +2,21 @@ import { getJson, getText, renderAdSlots, trackPageView } from "./runtime.js";
 
 const $ = (selector) => document.querySelector(selector);
 
+function escapeHtml(value = "") {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[char]);
+}
+
+function splitValues(value) {
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+  return String(value || "").split(",").map((item) => item.trim()).filter(Boolean);
+}
+
 function parseFrontMatter(markdown, path) {
   const match = markdown.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
   const meta = {};
@@ -16,18 +31,54 @@ function parseFrontMatter(markdown, path) {
     });
   }
 
-  return {
+  return normalizePost({
     path,
-    title: meta.title || "Untitled",
-    date: meta.date || "",
-    category: meta.category || "General",
-    subcategory: meta.subcategory || "",
-    tags: (meta.tags || "").split(",").map((tag) => tag.trim()).filter(Boolean),
-    cover: meta.cover || "",
+    title: meta.title,
+    date: meta.date,
+    showDate: meta.showDate !== "false",
+    category: meta.category,
+    categories: meta.categories,
+    subcategory: meta.subcategory,
+    subcategories: meta.subcategories,
+    tags: meta.tags,
+    cover: meta.cover,
     summary: meta.summary || body.replace(/\s+/g, " ").slice(0, 120),
     featured: meta.featured === "true",
+    status: meta.status || "published",
+    format: meta.format || "",
     body
+  });
+}
+
+function normalizePost(item) {
+  const categories = splitValues(item.categories || item.category || "未分类");
+  const subcategories = splitValues(item.subcategories || item.subcategory);
+  const tags = splitValues(item.tags);
+  return {
+    path: item.path,
+    title: item.title || "未命名文章",
+    date: item.date || "",
+    showDate: item.showDate !== false && item.showDate !== "false",
+    category: categories[0] || "未分类",
+    categories,
+    subcategory: subcategories[0] || "",
+    subcategories,
+    tags,
+    cover: item.cover || "",
+    summary: item.summary || "",
+    featured: item.featured === true || item.featured === "true",
+    status: item.status || "published",
+    format: item.format || "",
+    body: item.body || ""
   };
+}
+
+async function loadPostsFromIndex(index) {
+  if (Array.isArray(index) && index.every((item) => typeof item === "string")) {
+    const markdown = await Promise.all(index.map(getText));
+    return markdown.map((text, indexNumber) => parseFrontMatter(text, index[indexNumber]));
+  }
+  return (Array.isArray(index) ? index : []).map(normalizePost);
 }
 
 function articleHref(path) {
@@ -35,7 +86,7 @@ function articleHref(path) {
 }
 
 function renderMenu(menu) {
-  $("[data-menu]").innerHTML = menu.map((item) => `<a href="${item.href}">${item.label}</a>`).join("");
+  $("[data-menu]").innerHTML = menu.map((item) => `<a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a>`).join("");
 }
 
 function renderSite(site) {
@@ -43,13 +94,13 @@ function renderSite(site) {
   $("[data-site-title]").textContent = site.title;
   $("[data-site-subtitle]").textContent = site.subtitle;
   $("[data-site-description]").textContent = site.description;
-  $("[data-hero]").style.backgroundImage = `url("${site.heroImage}")`;
+  if (site.heroImage) $("[data-hero]").style.backgroundImage = `url("${site.heroImage}")`;
   $("[data-site-footer]").textContent = site.copyright || `© ${new Date().getFullYear()} ${site.title}`;
 }
 
 function renderSidebar(sidebar, posts, onFilter) {
   const tags = new Set(posts.flatMap((post) => post.tags));
-  const cats = new Set(posts.map((post) => post.category));
+  const cats = new Set(posts.flatMap((post) => post.categories));
   $("[data-sidebar-avatar]").src = sidebar.avatar;
   $("[data-sidebar-name]").textContent = sidebar.name;
   $("[data-sidebar-bio]").textContent = sidebar.bio;
@@ -59,10 +110,25 @@ function renderSidebar(sidebar, posts, onFilter) {
   $("[data-stat-posts]").textContent = posts.length;
   $("[data-stat-tags]").textContent = tags.size;
   $("[data-stat-cats]").textContent = cats.size;
-  $("[data-tags]").innerHTML = [...tags].map((tag) => `<button class="tag filter-tag" data-tag="${tag}"># ${tag}</button>`).join("");
+  $("[data-tags]").innerHTML = [...tags].map((tag) => `<button class="tag filter-tag" data-tag="${escapeHtml(tag)}"># ${escapeHtml(tag)}</button>`).join("");
   $("[data-tags]").querySelectorAll("[data-tag]").forEach((button) => {
     button.addEventListener("click", () => onFilter({ type: "tag", value: button.dataset.tag }));
   });
+}
+
+function renderCover(post) {
+  if (post.cover) {
+    return `
+      <a class="post-cover" href="${articleHref(post.path)}">
+        <img src="${escapeHtml(post.cover)}" alt="">
+      </a>
+    `;
+  }
+  return `
+    <a class="post-cover post-cover-empty" href="${articleHref(post.path)}">
+      <span>${escapeHtml(post.category.slice(0, 8) || "文章")}</span>
+    </a>
+  `;
 }
 
 function renderPosts(posts, activeFilter) {
@@ -70,18 +136,16 @@ function renderPosts(posts, activeFilter) {
   $("[data-post-count]").textContent = `${posts.length} 篇${suffix}`;
   $("[data-posts]").innerHTML = posts.map((post) => `
     <article class="post-card">
-      <a class="post-cover" href="${articleHref(post.path)}">
-        <img src="${post.cover}" alt="">
-      </a>
+      ${renderCover(post)}
       <div class="post-body">
         <div class="post-meta">
-          <span>${post.date}</span>
-          <button class="meta-button" data-category="${post.category}">${post.category}</button>
+          ${post.showDate && post.date ? `<span>${escapeHtml(post.date)}</span>` : ""}
+          ${post.categories.map((category) => `<button class="meta-button" data-category="${escapeHtml(category)}">${escapeHtml(category)}</button>`).join("")}
           ${post.featured ? "<span>推荐</span>" : ""}
         </div>
-        <h3><a href="${articleHref(post.path)}">${post.title}</a></h3>
-        <p>${post.summary}</p>
-        <div class="tags">${post.tags.map((tag) => `<button class="tag filter-tag" data-tag="${tag}"># ${tag}</button>`).join("")}</div>
+        <h3><a href="${articleHref(post.path)}">${escapeHtml(post.title)}</a></h3>
+        <p>${escapeHtml(post.summary)}</p>
+        <div class="tags">${post.tags.map((tag) => `<button class="tag filter-tag" data-tag="${escapeHtml(tag)}"># ${escapeHtml(tag)}</button>`).join("")}</div>
       </div>
     </article>
   `).join("");
@@ -92,10 +156,10 @@ function setupPostFilters(allPosts) {
   const apply = (filter) => {
     activeFilter = filter;
     const posts = filter
-      ? allPosts.filter((post) => filter.type === "tag" ? post.tags.includes(filter.value) : post.category === filter.value)
+      ? allPosts.filter((post) => filter.type === "tag" ? post.tags.includes(filter.value) : post.categories.includes(filter.value))
       : allPosts;
     renderPosts(posts, activeFilter);
-    renderAdSlots({ page: "home", category: filter?.type === "category" ? filter.value : "" });
+    renderAdSlots({ page: "home", categories: filter?.type === "category" ? [filter.value] : [] });
     attachFilterEvents(apply);
   };
   attachFilterEvents(apply);
@@ -123,13 +187,13 @@ function setupSearch(posts) {
   input.addEventListener("input", () => {
     const query = input.value.trim().toLowerCase();
     const matched = posts.filter((post) => {
-      const haystack = `${post.title} ${post.summary} ${post.tags.join(" ")}`.toLowerCase();
+      const haystack = `${post.title} ${post.summary} ${post.categories.join(" ")} ${post.subcategories.join(" ")} ${post.tags.join(" ")}`.toLowerCase();
       return !query || haystack.includes(query);
     });
     results.innerHTML = matched.map((post) => `
       <a class="search-result" href="${articleHref(post.path)}">
-        <strong>${post.title}</strong>
-        <span>${post.summary}</span>
+        <strong>${escapeHtml(post.title)}</strong>
+        <span>${escapeHtml(post.summary)}</span>
       </a>
     `).join("");
   });
@@ -152,15 +216,15 @@ function setupBackTop() {
 }
 
 async function init() {
-  const postFiles = await getJson("/content/posts/index.json");
-  const [site, menu, sidebar, theme, ...markdown] = await Promise.all([
+  const postIndex = await getJson("/content/posts/index.json");
+  const [site, menu, sidebar, theme] = await Promise.all([
     getJson("/config/site.json"),
     getJson("/config/menu.json"),
     getJson("/config/sidebar.json"),
-    getJson("/config/theme.json"),
-    ...postFiles.map(getText)
+    getJson("/config/theme.json")
   ]);
-  const posts = markdown.map((text, index) => parseFrontMatter(text, postFiles[index]))
+  const posts = (await loadPostsFromIndex(postIndex))
+    .filter((post) => post.status !== "draft")
     .sort((a, b) => b.date.localeCompare(a.date));
 
   renderSite(site);
@@ -177,5 +241,5 @@ async function init() {
 
 init().catch((error) => {
   console.error(error);
-  $("[data-posts]").innerHTML = `<p>加载失败：${error.message}</p>`;
+  $("[data-posts]").innerHTML = `<p>加载失败：${escapeHtml(error.message)}</p>`;
 });

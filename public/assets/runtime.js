@@ -35,9 +35,10 @@ function normalizeList(value) {
   return String(value || "").split(",").map((item) => item.trim()).filter(Boolean);
 }
 
-function includesMatch(values, target) {
+function includesMatch(values, targets) {
   const list = normalizeList(values);
-  return !list.length || list.includes("all") || list.includes("全部") || (target && list.includes(target));
+  const targetList = normalizeList(targets);
+  return !list.length || list.includes("all") || list.includes("全部") || targetList.some((target) => list.includes(target));
 }
 
 function placementMatches(placement, context) {
@@ -80,8 +81,8 @@ export async function renderAdSlots(context = {}) {
   slots.forEach((slot) => {
     const slotContext = {
       page: context.page || "",
-      category: context.category || "",
-      subcategory: context.subcategory || "",
+      category: context.categories || context.category || "",
+      subcategory: context.subcategories || context.subcategory || "",
       path: context.path || location.pathname,
       slot: slot.dataset.adSlot
     };

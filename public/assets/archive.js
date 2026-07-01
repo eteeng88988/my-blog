@@ -2,6 +2,21 @@ import { getJson, getText, renderAdSlots, trackPageView } from "./runtime.js";
 
 const $ = (selector) => document.querySelector(selector);
 
+function escapeHtml(value = "") {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[char]);
+}
+
+function splitValues(value) {
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+  return String(value || "").split(",").map((item) => item.trim()).filter(Boolean);
+}
+
 function parseFrontMatter(markdown, path) {
   const match = markdown.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
   const meta = {};
@@ -12,17 +27,40 @@ function parseFrontMatter(markdown, path) {
       meta[line.slice(0, index).trim()] = line.slice(index + 1).trim();
     });
   }
-  return {
+  return normalizePost({
     path,
-    title: meta.title || "未命名文章",
-    date: meta.date || "",
-    category: meta.category || "未分类",
-    tags: (meta.tags || "").split(",").map((tag) => tag.trim()).filter(Boolean)
+    title: meta.title,
+    date: meta.date,
+    category: meta.category,
+    categories: meta.categories,
+    tags: meta.tags,
+    status: meta.status || "published"
+  });
+}
+
+function normalizePost(item) {
+  const categories = splitValues(item.categories || item.category || "未分类");
+  return {
+    path: item.path,
+    title: item.title || "未命名文章",
+    date: item.date || "",
+    category: categories[0] || "未分类",
+    categories,
+    tags: splitValues(item.tags),
+    status: item.status || "published"
   };
 }
 
+async function loadPostsFromIndex(index) {
+  if (Array.isArray(index) && index.every((item) => typeof item === "string")) {
+    const markdown = await Promise.all(index.map(getText));
+    return markdown.map((text, indexNumber) => parseFrontMatter(text, index[indexNumber]));
+  }
+  return (Array.isArray(index) ? index : []).map(normalizePost);
+}
+
 function renderMenu(menu) {
-  $("[data-menu]").innerHTML = menu.map((item) => `<a href="${item.href}">${item.label}</a>`).join("");
+  $("[data-menu]").innerHTML = menu.map((item) => `<a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a>`).join("");
 }
 
 function setupTheme(theme) {
@@ -47,12 +85,12 @@ function countBy(values) {
 function renderCloud(selector, entries) {
   $(selector).innerHTML = [...entries]
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .map(([name, count]) => `<span class="tag"># ${name} ${count}</span>`)
+    .map(([name, count]) => `<span class="tag"># ${escapeHtml(name)} ${count}</span>`)
     .join("");
 }
 
 function renderArchive(posts) {
-  const categories = countBy(posts.map((post) => post.category));
+  const categories = countBy(posts.flatMap((post) => post.categories));
   const tags = countBy(posts.flatMap((post) => post.tags));
   $("[data-archive-summary]").innerHTML = `
     <span><strong>${posts.length}</strong> 篇文章</span>
@@ -61,9 +99,9 @@ function renderArchive(posts) {
   `;
   $("[data-archive-list]").innerHTML = posts.map((post) => `
     <a class="archive-row" href="/article.html?file=${encodeURIComponent(post.path)}">
-      <time>${post.date}</time>
-      <strong>${post.title}</strong>
-      <span>${post.category}</span>
+      <time>${escapeHtml(post.date)}</time>
+      <strong>${escapeHtml(post.title)}</strong>
+      <span>${escapeHtml(post.categories.join("、"))}</span>
     </a>
   `).join("");
   renderCloud("[data-category-cloud]", categories);
@@ -71,14 +109,14 @@ function renderArchive(posts) {
 }
 
 async function init() {
-  const postFiles = await getJson("/content/posts/index.json");
-  const [site, menu, theme, ...markdown] = await Promise.all([
+  const postIndex = await getJson("/content/posts/index.json");
+  const [site, menu, theme] = await Promise.all([
     getJson("/config/site.json"),
     getJson("/config/menu.json"),
-    getJson("/config/theme.json"),
-    ...postFiles.map(getText)
+    getJson("/config/theme.json")
   ]);
-  const posts = markdown.map((text, index) => parseFrontMatter(text, postFiles[index]))
+  const posts = (await loadPostsFromIndex(postIndex))
+    .filter((post) => post.status !== "draft")
     .sort((a, b) => b.date.localeCompare(a.date));
   document.title = `归档 - ${site.title}`;
   $("[data-site-title]").textContent = site.title;
@@ -91,5 +129,5 @@ async function init() {
 }
 
 init().catch((error) => {
-  $("[data-archive-list]").innerHTML = `<p>加载失败：${error.message}</p>`;
+  $("[data-archive-list]").innerHTML = `<p>加载失败：${escapeHtml(error.message)}</p>`;
 });

@@ -49,15 +49,20 @@ R2 未绑定时，前台仍会读取仓库里的静态文件；后台会尽量�
 
 ## 广告位
 
-后台“广告”里每行一个广告，格式为：
+后台“广告”使用结构化表单管理，不需要手写分隔符。每个广告位都可以单独设置：
 
-```text
-启用|广告位|页面|大类目|子类目|内容路径|标题|链接|图片|文案或 HTML
-```
-
-启用填“是”或“否”。关闭的广告位会自动折叠，不占用页面空间。
+- 打开或关闭。关闭后前台自动折叠，不占用页面空间。
+- 展示页面：全站、首页、归档页、媒体页、文章内容页、独立页面。
+- 展示范围：全部大类、指定大类、全部子类、指定子类、指定内容路径。
+- 素材内容：标题、链接、图片、纯文字或 HTML。
 
 支持的广告位：`global-top`、`home-top`、`category-top`、`subcategory-top`、`content-list`、`article-top`、`article-content`、`footer`。
+
+## 批量内容导入
+
+`tools/prepare-money-playbook-import.mjs` 会读取桌面文件夹里的分类目录 TXT 和原始正文 TXT，生成 `public/content/posts/money-playbook/` 下的草稿文章，并更新 `public/content/posts/index.json` 与 `public/config/categories.json`。
+
+本次导入报告在 `outputs/money-playbook-import-report.md` 和 `outputs/money-playbook-import-report.json`。导入正文使用 `format: raw`，文章页会按原始换行显示。
 
 ## 访客统计
 

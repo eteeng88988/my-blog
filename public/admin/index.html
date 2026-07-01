@@ -25,6 +25,7 @@
           <button data-tab="dashboard" class="active">仪表盘</button>
           <button data-tab="posts">文章</button>
           <button data-tab="pages">页面</button>
+          <button data-tab="categories">分类</button>
           <button data-tab="menu">菜单</button>
           <button data-tab="ads">广告</button>
           <button data-tab="media">媒体</button>
@@ -89,12 +90,24 @@
                 <input name="path" type="hidden">
                 <label>标题<input name="title" required></label>
                 <label>日期<input name="date" type="date" required></label>
-                <label>分类<input name="category"></label>
-                <label>子类目<input name="subcategory"></label>
+                <label>分类<select name="categories" multiple size="7"></select></label>
+                <label>子类目<select name="subcategories" multiple size="7"></select></label>
                 <label>文章页显示时间
                   <select name="showDate">
                     <option value="true">显示</option>
                     <option value="false">不显示</option>
+                  </select>
+                </label>
+                <label>推荐
+                  <select name="featured">
+                    <option value="false">否</option>
+                    <option value="true">是</option>
+                  </select>
+                </label>
+                <label>发布状态
+                  <select name="status">
+                    <option value="published">公开</option>
+                    <option value="draft">草稿</option>
                   </select>
                 </label>
                 <label>标签<input name="tags" placeholder="Cloudflare,GitHub"></label>
@@ -126,30 +139,26 @@
           </div>
 
           <form class="panel config-form" data-panel="menu" data-menu-form hidden>
-            <label>
-              菜单项目
-              <textarea name="items" rows="8" placeholder="首页|/&#10;归档|/#posts&#10;关于|/article.html?file=%2Fcontent%2Fpages%2Fabout.md"></textarea>
-            </label>
-            <p class="hint">每行一个菜单：名称|链接</p>
+            <div class="structured-list" data-menu-items></div>
+            <button type="button" data-add-menu>新增菜单</button>
             <button type="submit">保存菜单</button>
           </form>
 
+          <form class="panel config-form" data-panel="categories" data-categories-form hidden>
+            <div class="structured-list" data-category-items></div>
+            <button type="button" data-add-category>新增大类</button>
+            <button type="submit">保存分类</button>
+          </form>
+
           <form class="panel config-form" data-panel="ads" data-ads-form hidden>
-            <label>
-              广告位
-              <textarea name="items" rows="14" placeholder="是|global-top|all|all|all||全站顶部广告|https://example.com|https://example.com/ad.jpg|广告文案或 HTML&#10;否|home-top|home|all|all||首页广告||||"></textarea>
-            </label>
-            <p class="hint">每行一个广告：启用|广告位|页面|大类目|子类目|内容路径|标题|链接|图片|文案或 HTML。关闭填“否”，前台会自动折叠不占位置。</p>
-            <p class="hint">广告位：global-top、home-top、category-top、subcategory-top、content-list、article-top、article-content、footer。页面可填 all、home、archive、media、article、page。</p>
+            <div class="structured-list" data-ad-items></div>
+            <button type="button" data-add-ad>新增广告</button>
             <button type="submit">保存广告设置</button>
           </form>
 
           <form class="panel config-form" data-panel="media" data-media-form hidden>
-            <label>
-              媒体链接
-              <textarea name="items" rows="10" placeholder="头像|https://example.com/avatar.jpg|image|个人头像&#10;首页头图|https://example.com/hero.jpg|image|首页背景"></textarea>
-            </label>
-            <p class="hint">每行一个媒体：名称|链接|类型|备注。第一版先管理外部图片链接，后续可升级到 R2 上传。</p>
+            <div class="structured-list" data-media-items></div>
+            <button type="button" data-add-media>新增媒体</button>
             <button type="submit">保存媒体链接</button>
           </form>
 

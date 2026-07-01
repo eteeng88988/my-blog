@@ -4,8 +4,31 @@ const $$ = (selector) => [...document.querySelectorAll(selector)];
 let posts = [];
 let pages = [];
 let mediaItems = [];
+let menuItems = [];
+let categoryConfig = { items: [] };
+let adConfig = { placements: [] };
 let activePost = null;
 let activePage = null;
+
+const pageOptions = [
+  { value: "all", label: "全站" },
+  { value: "home", label: "首页" },
+  { value: "archive", label: "归档页" },
+  { value: "media", label: "媒体页" },
+  { value: "article", label: "文章内容页" },
+  { value: "page", label: "独立页面" }
+];
+
+const adSlots = [
+  { value: "global-top", label: "全站顶部广告位" },
+  { value: "home-top", label: "首页广告位" },
+  { value: "category-top", label: "大类目广告位" },
+  { value: "subcategory-top", label: "子类目广告位" },
+  { value: "content-list", label: "内容列表广告位" },
+  { value: "article-top", label: "文章页顶部广告位" },
+  { value: "article-content", label: "文章内容广告位" },
+  { value: "footer", label: "底栏广告位" }
+];
 
 async function api(path, options = {}) {
   const res = await fetch(`/api/admin${path}`, {
@@ -19,6 +42,16 @@ async function api(path, options = {}) {
 
 function setStatus(message) {
   $("[data-status]").textContent = message;
+}
+
+function escapeHtml(value = "") {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[char]);
 }
 
 function slugify(title, fallback) {
@@ -42,8 +75,22 @@ function parseFrontMatter(markdown, path) {
   return { path, meta, body };
 }
 
+function splitValues(value) {
+  return String(value || "").split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+function joinValues(values) {
+  return [...new Set((values || []).map((item) => String(item).trim()).filter(Boolean))].join(",");
+}
+
+function selectedValues(select) {
+  return [...select.selectedOptions].map((option) => option.value).filter(Boolean);
+}
+
 function buildPostMarkdown(values) {
-  return `---\ntitle: ${values.title}\ndate: ${values.date}\nshowDate: ${values.showDate === "false" ? "false" : "true"}\ncategory: ${values.category}\nsubcategory: ${values.subcategory || ""}\ntags: ${values.tags}\ncover: ${values.cover}\nsummary: ${values.summary}\nfeatured: false\n---\n\n${values.body || ""}`;
+  const categories = joinValues(values.categories);
+  const subcategories = joinValues(values.subcategories);
+  return `---\ntitle: ${values.title}\ndate: ${values.date}\nshowDate: ${values.showDate === "false" ? "false" : "true"}\ncategory: ${categories}\ncategories: ${categories}\nsubcategory: ${subcategories}\nsubcategories: ${subcategories}\ntags: ${values.tags}\ncover: ${values.cover}\nsummary: ${values.summary}\nfeatured: ${values.featured === "true" ? "true" : "false"}\nstatus: ${values.status || "published"}\n---\n\n${values.body || ""}`;
 }
 
 function buildPageMarkdown(values) {
@@ -58,6 +105,78 @@ function fillForm(form, values) {
 
 function readForm(form) {
   return Object.fromEntries(new FormData(form).entries());
+}
+
+function optionList(values, selected = []) {
+  const selectedSet = new Set(selected);
+  return values.map((value) => `<option value="${escapeHtml(value)}" ${selectedSet.has(value) ? "selected" : ""}>${escapeHtml(value)}</option>`).join("");
+}
+
+function objectOptionList(options, selected = []) {
+  const selectedSet = new Set(selected);
+  return options.map((option) => `<option value="${escapeHtml(option.value)}" ${selectedSet.has(option.value) ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("");
+}
+
+function allCategories() {
+  return (categoryConfig.items || []).map((item) => item.name).filter(Boolean);
+}
+
+function allSubcategories(selectedCategories = []) {
+  const selected = new Set(selectedCategories);
+  return (categoryConfig.items || [])
+    .filter((item) => !selected.size || selected.has(item.name))
+    .flatMap((item) => item.children || [])
+    .filter(Boolean)
+    .filter((item, index, list) => list.indexOf(item) === index);
+}
+
+function postCategories(meta = {}) {
+  return splitValues(meta.categories || meta.category);
+}
+
+function postSubcategories(meta = {}) {
+  return splitValues(meta.subcategories || meta.subcategory);
+}
+
+function publicContentPath(path) {
+  return `/${path.replace(/^public\//, "")}`;
+}
+
+function postIndexEntry(post) {
+  const categories = postCategories(post.meta);
+  const subcategories = postSubcategories(post.meta);
+  const fallbackSummary = (post.body || "").replace(/\s+/g, " ").slice(0, 160);
+  return {
+    path: publicContentPath(post.path),
+    title: post.meta.title || post.path.split("/").pop(),
+    date: post.meta.date || "",
+    showDate: post.meta.showDate === "false" ? false : true,
+    category: categories[0] || post.meta.category || "",
+    categories,
+    subcategory: subcategories[0] || post.meta.subcategory || "",
+    subcategories,
+    tags: splitValues(post.meta.tags),
+    cover: post.meta.cover || "",
+    summary: post.meta.summary || fallbackSummary,
+    featured: post.meta.featured === "true" || post.meta.featured === true,
+    status: post.meta.status || "published",
+    format: post.meta.format || ""
+  };
+}
+
+function renderCategorySelects(selectedCategories = [], selectedSubcategories = []) {
+  const form = $("[data-post-form]");
+  if (!form) return;
+  form.elements.categories.innerHTML = optionList(allCategories(), selectedCategories);
+  form.elements.subcategories.innerHTML = optionList(allSubcategories(selectedCategories), selectedSubcategories);
+}
+
+function wireCategorySelects() {
+  const form = $("[data-post-form]");
+  form.elements.categories.addEventListener("change", () => {
+    const selectedCats = selectedValues(form.elements.categories);
+    renderCategorySelects(selectedCats, selectedValues(form.elements.subcategories));
+  });
 }
 
 function normalizeConfig(path, values) {
@@ -167,7 +286,7 @@ function renderMarkdownList(items, selector, activePath, selectItem) {
   list.innerHTML = items.map((item) => `
     <button class="post-item ${activePath === item.path ? "active" : ""}" data-path="${item.path}">
       ${item.meta.title || item.path}
-      <small>${item.meta.date || ""} / ${item.meta.category || "页面"}</small>
+      <small>${item.meta.date || ""} / ${postCategories(item.meta).join("、") || "页面"}</small>
     </button>
   `).join("");
 
@@ -179,16 +298,19 @@ function renderMarkdownList(items, selector, activePath, selectItem) {
 function selectPost(path) {
   activePost = posts.find((post) => post.path === path);
   if (!activePost) return;
+  const categories = splitValues(activePost.meta.categories || activePost.meta.category);
+  const subcategories = splitValues(activePost.meta.subcategories || activePost.meta.subcategory);
+  renderCategorySelects(categories, subcategories);
   fillForm($("[data-post-form]"), {
     path: activePost.path,
     title: activePost.meta.title,
     date: activePost.meta.date,
-    category: activePost.meta.category,
-    subcategory: activePost.meta.subcategory,
     showDate: activePost.meta.showDate === "false" ? "false" : "true",
     tags: activePost.meta.tags,
     cover: activePost.meta.cover,
     summary: activePost.meta.summary,
+    featured: activePost.meta.featured === "true" ? "true" : "false",
+    status: activePost.meta.status || "published",
     body: activePost.body.trim()
   });
   renderMarkdownList(posts, "[data-post-list]", activePost.path, selectPost);
@@ -233,16 +355,23 @@ async function loadPages() {
   setStatus("页面已读取");
 }
 
-async function syncIndex(items, extraPath, indexPath) {
-  const paths = [...new Set([
-    ...items.map((item) => `/${item.path.replace(/^public\//, "")}`),
-    ...(extraPath ? [`/${extraPath.replace(/^public\//, "")}`] : [])
-  ])].sort();
+async function syncIndex(items, extraPath, indexPath, extraContent = "") {
+  const nextItems = [...items];
+  if (extraPath) {
+    const extraItem = extraContent ? parseFrontMatter(extraContent, extraPath) : { path: extraPath, meta: {}, body: "" };
+    const existing = nextItems.findIndex((item) => item.path === extraPath);
+    if (existing === -1) nextItems.push(extraItem);
+    else nextItems[existing] = extraItem;
+  }
+  const paths = [...new Set(nextItems.map((item) => publicContentPath(item.path)))].sort();
+  const content = indexPath.includes("/posts/")
+    ? JSON.stringify(nextItems.map(postIndexEntry).sort((a, b) => (b.date || "").localeCompare(a.date || "")), null, 2)
+    : JSON.stringify(paths, null, 2);
   await api("/file", {
     method: "PUT",
     body: JSON.stringify({
       path: indexPath,
-      content: `${JSON.stringify(paths, null, 2)}\n`,
+      content: `${content}\n`,
       message: `Update ${indexPath}`
     })
   });
@@ -255,44 +384,107 @@ async function loadConfig(form) {
 }
 
 async function loadMenu() {
-  const form = $("[data-menu-form]");
   const file = await api(`/file?path=${encodeURIComponent("public/config/menu.json")}`);
-  const items = JSON.parse(file.content);
-  form.elements.items.value = items.map((item) => `${item.label}|${item.href}`).join("\n");
+  menuItems = JSON.parse(file.content);
+  renderMenuEditor();
 }
 
-function parseMenuItems(value) {
-  return value.split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [label, ...hrefParts] = line.split("|");
-      return { label: label.trim(), href: hrefParts.join("|").trim() || "/" };
-    })
-    .filter((item) => item.label);
+function renderMenuEditor() {
+  $("[data-menu-items]").innerHTML = menuItems.map((item, index) => `
+    <div class="structured-row" data-menu-row="${index}">
+      <label>名称<input data-menu-label value="${escapeHtml(item.label)}"></label>
+      <label>链接<input data-menu-href value="${escapeHtml(item.href)}"></label>
+      <button type="button" data-remove-menu="${index}">删除</button>
+    </div>
+  `).join("");
+  $$("[data-remove-menu]").forEach((button) => {
+    button.addEventListener("click", () => {
+      menuItems.splice(Number(button.dataset.removeMenu), 1);
+      renderMenuEditor();
+    });
+  });
+}
+
+function collectMenuItems() {
+  return $$("[data-menu-row]").map((row) => ({
+    label: row.querySelector("[data-menu-label]").value.trim(),
+    href: row.querySelector("[data-menu-href]").value.trim() || "/"
+  })).filter((item) => item.label);
+}
+
+async function loadCategories() {
+  const file = await api(`/file?path=${encodeURIComponent("public/config/categories.json")}`);
+  categoryConfig = JSON.parse(file.content);
+  renderCategoryEditor();
+  renderCategorySelects(
+    activePost ? splitValues(activePost.meta.categories || activePost.meta.category) : [],
+    activePost ? splitValues(activePost.meta.subcategories || activePost.meta.subcategory) : []
+  );
+}
+
+function renderCategoryEditor() {
+  $("[data-category-items]").innerHTML = (categoryConfig.items || []).map((item, index) => `
+    <div class="structured-row category-row" data-category-row="${index}">
+      <label>大类<input data-category-name value="${escapeHtml(item.name)}"></label>
+      <label>子类<textarea data-category-children rows="3">${escapeHtml((item.children || []).join("\n"))}</textarea></label>
+      <button type="button" data-remove-category="${index}">删除</button>
+    </div>
+  `).join("");
+  $$("[data-remove-category]").forEach((button) => {
+    button.addEventListener("click", () => {
+      categoryConfig.items.splice(Number(button.dataset.removeCategory), 1);
+      renderCategoryEditor();
+      renderCategorySelects();
+    });
+  });
+}
+
+function collectCategories() {
+  return {
+    items: $$("[data-category-row]").map((row) => ({
+      name: row.querySelector("[data-category-name]").value.trim(),
+      children: splitValues(row.querySelector("[data-category-children]").value.replace(/\n/g, ","))
+    })).filter((item) => item.name)
+  };
 }
 
 async function loadMedia() {
-  const form = $("[data-media-form]");
   const file = await api(`/file?path=${encodeURIComponent("public/content/media.json")}`);
   mediaItems = JSON.parse(file.content);
-  form.elements.items.value = mediaItems.map((item) => [
-    item.name || "",
-    item.url || "",
-    item.type || "image",
-    item.note || ""
-  ].join("|")).join("\n");
+  renderMediaEditor();
 }
 
-function parseMediaItems(value) {
-  return value.split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [name, url, type = "image", ...noteParts] = line.split("|");
-      return { name: name.trim(), url: (url || "").trim(), type: type.trim(), note: noteParts.join("|").trim() };
-    })
-    .filter((item) => item.name && item.url);
+function renderMediaEditor() {
+  $("[data-media-items]").innerHTML = mediaItems.map((item, index) => `
+    <div class="structured-row" data-media-row="${index}">
+      <label>名称<input data-media-name value="${escapeHtml(item.name)}"></label>
+      <label>链接<input data-media-url value="${escapeHtml(item.url)}"></label>
+      <label>类型
+        <select data-media-type>
+          <option value="image" ${item.type === "image" ? "selected" : ""}>图片</option>
+          <option value="file" ${item.type === "file" ? "selected" : ""}>文件</option>
+          <option value="video" ${item.type === "video" ? "selected" : ""}>视频</option>
+        </select>
+      </label>
+      <label>备注<input data-media-note value="${escapeHtml(item.note)}"></label>
+      <button type="button" data-remove-media="${index}">删除</button>
+    </div>
+  `).join("");
+  $$("[data-remove-media]").forEach((button) => {
+    button.addEventListener("click", () => {
+      mediaItems.splice(Number(button.dataset.removeMedia), 1);
+      renderMediaEditor();
+    });
+  });
+}
+
+function collectMediaItems() {
+  return $$("[data-media-row]").map((row) => ({
+    name: row.querySelector("[data-media-name]").value.trim(),
+    url: row.querySelector("[data-media-url]").value.trim(),
+    type: row.querySelector("[data-media-type]").value,
+    note: row.querySelector("[data-media-note]").value.trim()
+  })).filter((item) => item.name && item.url);
 }
 
 function listValue(value) {
@@ -343,10 +535,71 @@ function parseAdItems(value) {
 }
 
 async function loadAds() {
-  const form = $("[data-ads-form]");
   const file = await api(`/file?path=${encodeURIComponent("public/config/ads.json")}`);
-  const config = JSON.parse(file.content);
-  form.elements.items.value = (config.placements || []).map(formatAdItem).join("\n");
+  adConfig = JSON.parse(file.content);
+  renderAdEditor();
+}
+
+function renderAdEditor() {
+  const categoryOptions = [{ value: "all", label: "全部大类" }, ...allCategories().map((name) => ({ value: name, label: name }))];
+  const subcategoryOptions = [{ value: "all", label: "全部子类" }, ...allSubcategories().map((name) => ({ value: name, label: name }))];
+  $("[data-ad-items]").innerHTML = (adConfig.placements || []).map((item, index) => `
+    <div class="structured-row ad-row" data-ad-row="${index}">
+      <label>启用
+        <select data-ad-enabled>
+          <option value="true" ${item.enabled ? "selected" : ""}>打开</option>
+          <option value="false" ${!item.enabled ? "selected" : ""}>关闭</option>
+        </select>
+      </label>
+      <label>广告位置
+        <select data-ad-slot>${objectOptionList(adSlots, [item.slot || "global-top"])}</select>
+      </label>
+      <label>展示页面
+        <select data-ad-pages multiple size="6">${objectOptionList(pageOptions, listValue(item.pages).length ? listValue(item.pages) : ["all"])}</select>
+      </label>
+      <label>指定大类
+        <select data-ad-categories multiple size="6">${objectOptionList(categoryOptions, listValue(item.categories).length ? listValue(item.categories) : ["all"])}</select>
+      </label>
+      <label>指定子类
+        <select data-ad-subcategories multiple size="6">${objectOptionList(subcategoryOptions, listValue(item.subcategories).length ? listValue(item.subcategories) : ["all"])}</select>
+      </label>
+      <label>指定路径<input data-ad-paths value="${escapeHtml(listValue(item.paths).join(","))}" placeholder="/content/posts/example.md"></label>
+      <label>标题<input data-ad-title value="${escapeHtml(item.title)}"></label>
+      <label>链接<input data-ad-url value="${escapeHtml(item.url)}"></label>
+      <label>图片<input data-ad-image value="${escapeHtml(item.image)}"></label>
+      <label>文字<input data-ad-text value="${escapeHtml(item.text)}"></label>
+      <label>HTML<textarea data-ad-html rows="4">${escapeHtml(item.html)}</textarea></label>
+      <button type="button" data-remove-ad="${index}">删除</button>
+    </div>
+  `).join("");
+  $$("[data-remove-ad]").forEach((button) => {
+    button.addEventListener("click", () => {
+      adConfig.placements.splice(Number(button.dataset.removeAd), 1);
+      renderAdEditor();
+    });
+  });
+}
+
+function collectAdItems() {
+  return {
+    placements: $$("[data-ad-row]").map((row, index) => {
+      const slot = row.querySelector("[data-ad-slot]").value;
+      return {
+        id: `${slot}-${index + 1}`,
+        enabled: row.querySelector("[data-ad-enabled]").value === "true",
+        slot,
+        pages: selectedValues(row.querySelector("[data-ad-pages]")),
+        categories: selectedValues(row.querySelector("[data-ad-categories]")),
+        subcategories: selectedValues(row.querySelector("[data-ad-subcategories]")),
+        paths: splitValues(row.querySelector("[data-ad-paths]").value),
+        title: row.querySelector("[data-ad-title]").value.trim(),
+        text: row.querySelector("[data-ad-text]").value.trim(),
+        url: row.querySelector("[data-ad-url]").value.trim(),
+        image: row.querySelector("[data-ad-image]").value.trim(),
+        html: row.querySelector("[data-ad-html]").value.trim()
+      };
+    })
+  };
 }
 
 function normalizeAnalytics(values) {
@@ -406,15 +659,18 @@ async function loadStorageStatus() {
 
 async function loadAllAdminData() {
   await Promise.all([
-    loadPosts(),
-    loadPages(),
+    loadCategories(),
     ...$$("[data-config-form]").map(loadConfig),
     loadMenu(),
-    loadAds(),
     loadMedia(),
     loadAnalyticsConfig(),
-    loadStats(),
     loadStorageStatus()
+  ]);
+  await Promise.all([
+    loadPosts(),
+    loadPages(),
+    loadAds(),
+    loadStats(),
   ]);
   renderDashboard();
 }
@@ -458,16 +714,17 @@ function setupTabs() {
 function setupPostEditor() {
   $("[data-new-post]").addEventListener("click", () => {
     activePost = null;
+    renderCategorySelects([], []);
     fillForm($("[data-post-form]"), {
       path: "",
       title: "",
       date: new Date().toISOString().slice(0, 10),
-      category: "",
-      subcategory: "",
       showDate: "true",
       tags: "",
       cover: "",
       summary: "",
+      featured: "false",
+      status: "published",
       body: ""
     });
     renderMarkdownList(posts, "[data-post-list]", "", selectPost);
@@ -475,13 +732,18 @@ function setupPostEditor() {
 
   $("[data-post-form]").addEventListener("submit", async (event) => {
     event.preventDefault();
-    const values = readForm(event.currentTarget);
+    const values = {
+      ...readForm(event.currentTarget),
+      categories: selectedValues(event.currentTarget.elements.categories),
+      subcategories: selectedValues(event.currentTarget.elements.subcategories)
+    };
     const path = values.path || `public/content/posts/${slugify(values.title, "post")}.md`;
+    const content = buildPostMarkdown(values);
     await api("/file", {
       method: "PUT",
-      body: JSON.stringify({ path, content: buildPostMarkdown(values), message: `Update ${path}` })
+      body: JSON.stringify({ path, content, message: `Update ${path}` })
     });
-    await syncIndex(posts, path, "public/content/posts/index.json");
+    await syncIndex(posts, path, "public/content/posts/index.json", content);
     await loadPosts();
     await syncGeneratedSiteFiles();
     setStatus("文章、索引、RSS 和站点地图已保存。R2 模式下前台会直接读取最新内容。");
@@ -573,13 +835,18 @@ function setupConfigForms() {
 
 function setupMenuForm() {
   const form = $("[data-menu-form]");
+  $("[data-add-menu]").addEventListener("click", () => {
+    menuItems.push({ label: "", href: "/" });
+    renderMenuEditor();
+  });
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    menuItems = collectMenuItems();
     await api("/file", {
       method: "PUT",
       body: JSON.stringify({
         path: "public/config/menu.json",
-        content: `${JSON.stringify(parseMenuItems(form.elements.items.value), null, 2)}\n`,
+        content: `${JSON.stringify(menuItems, null, 2)}\n`,
         message: "Update menu"
       })
     });
@@ -587,15 +854,61 @@ function setupMenuForm() {
   });
 }
 
-function setupAdsForm() {
-  const form = $("[data-ads-form]");
+function setupCategoriesForm() {
+  const form = $("[data-categories-form]");
+  $("[data-add-category]").addEventListener("click", () => {
+    categoryConfig.items = categoryConfig.items || [];
+    categoryConfig.items.push({ name: "", children: [] });
+    renderCategoryEditor();
+  });
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    categoryConfig = collectCategories();
+    await api("/file", {
+      method: "PUT",
+      body: JSON.stringify({
+        path: "public/config/categories.json",
+        content: `${JSON.stringify(categoryConfig, null, 2)}\n`,
+        message: "Update categories"
+      })
+    });
+    renderCategorySelects(
+      activePost ? postCategories(activePost.meta) : [],
+      activePost ? postSubcategories(activePost.meta) : []
+    );
+    renderAdEditor();
+    setStatus("分类已保存，文章编辑和广告范围已同步更新。");
+  });
+}
+
+function setupAdsForm() {
+  const form = $("[data-ads-form]");
+  $("[data-add-ad]").addEventListener("click", () => {
+    adConfig.placements = adConfig.placements || [];
+    adConfig.placements.push({
+      id: `ad-${Date.now()}`,
+      enabled: false,
+      slot: "global-top",
+      pages: ["all"],
+      categories: ["all"],
+      subcategories: ["all"],
+      paths: [],
+      title: "",
+      text: "",
+      url: "",
+      image: "",
+      html: ""
+    });
+    renderAdEditor();
+  });
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    adConfig = collectAdItems();
     await api("/file", {
       method: "PUT",
       body: JSON.stringify({
         path: "public/config/ads.json",
-        content: `${JSON.stringify(parseAdItems(form.elements.items.value), null, 2)}\n`,
+        content: `${JSON.stringify(adConfig, null, 2)}\n`,
         message: "Update ads"
       })
     });
@@ -605,18 +918,22 @@ function setupAdsForm() {
 
 function setupMediaForm() {
   const form = $("[data-media-form]");
+  $("[data-add-media]").addEventListener("click", () => {
+    mediaItems.push({ name: "", url: "", type: "image", note: "" });
+    renderMediaEditor();
+  });
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    mediaItems = collectMediaItems();
     await api("/file", {
       method: "PUT",
       body: JSON.stringify({
         path: "public/content/media.json",
-        content: `${JSON.stringify(parseMediaItems(form.elements.items.value), null, 2)}\n`,
+        content: `${JSON.stringify(mediaItems, null, 2)}\n`,
         message: "Update media links"
       })
     });
     setStatus("媒体链接已保存。R2 模式下前台会直接读取最新内容。");
-    mediaItems = parseMediaItems(form.elements.items.value);
     renderDashboard();
   });
 }
@@ -672,10 +989,12 @@ setupTabs();
 setupPostEditor();
 setupPageEditor();
 setupConfigForms();
+setupCategoriesForm();
 setupMenuForm();
 setupAdsForm();
 setupMediaForm();
 setupAnalyticsForm();
 setupStatsActions();
 setupLogout();
+wireCategorySelects();
 restoreSession();
