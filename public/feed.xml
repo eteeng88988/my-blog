@@ -7,20 +7,6 @@
     <language>zh-CN</language>
     <lastBuildDate>Wed, 01 Jul 2026 07:40:46 GMT</lastBuildDate>
     <item>
-      <title>Butterfly 风格布局说明</title>
-      <link>https://my-blog-e1v.pages.dev/article.html?file=%2Fcontent%2Fposts%2Fbutterfly-layout.md</link>
-      <guid>https://my-blog-e1v.pages.dev/article.html?file=%2Fcontent%2Fposts%2Fbutterfly-layout.md</guid>
-      <pubDate>Fri, 26 Jun 2026 00:00:00 GMT</pubDate>
-      <description>这一版保留卡片文章、右侧栏、公告、头像信息、hover 动效和移动端响应式布局。</description>
-    </item>
-    <item>
-      <title>第一篇文章：博客开始运行</title>
-      <link>https://my-blog-e1v.pages.dev/article.html?file=%2Fcontent%2Fposts%2Fhello-cloudflare.md</link>
-      <guid>https://my-blog-e1v.pages.dev/article.html?file=%2Fcontent%2Fposts%2Fhello-cloudflare.md</guid>
-      <pubDate>Fri, 26 Jun 2026 00:00:00 GMT</pubDate>
-      <description>这是一篇示例文章，用来验证前台文章列表、封面、分类、标签和 Markdown 渲染效果。</description>
-    </item>
-    <item>
       <title>都说自媒体比较容易赚钱,之前的风口是否还存在？具体应该如何操作？</title>
       <link>https://my-blog-e1v.pages.dev/article.html?file=%2Fcontent%2Fposts%2Fmoney-playbook%2F001.md</link>
       <guid>https://my-blog-e1v.pages.dev/article.html?file=%2Fcontent%2Fposts%2Fmoney-playbook%2F001.md</guid>

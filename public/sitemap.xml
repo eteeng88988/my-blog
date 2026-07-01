@@ -61,18 +61,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://my-blog-e1v.pages.dev/article.html?file=%2Fcontent%2Fposts%2Fbutterfly-layout.md</loc>
-    <lastmod>2026-06-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://my-blog-e1v.pages.dev/article.html?file=%2Fcontent%2Fposts%2Fhello-cloudflare.md</loc>
-    <lastmod>2026-06-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://my-blog-e1v.pages.dev/article.html?file=%2Fcontent%2Fposts%2Fmoney-playbook%2F001.md</loc>
     <lastmod>2023-01-01</lastmod>
     <changefreq>monthly</changefreq>

@@ -45,6 +45,52 @@ function contentType(path) {
   return "application/octet-stream";
 }
 
+function parseFrontMatter(markdown = "", path = "") {
+  const match = markdown.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+  const meta = {};
+  let body = markdown;
+  if (match) {
+    body = match[2];
+    match[1].split(/\r?\n/).forEach((line) => {
+      const index = line.indexOf(":");
+      if (index === -1) return;
+      meta[line.slice(0, index).trim()] = line.slice(index + 1).trim();
+    });
+  }
+  return { path, meta, body };
+}
+
+function splitValues(value) {
+  return String(value || "").split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+function publicContentPath(path) {
+  return `/${cleanKey(path).replace(/^public\//, "")}`;
+}
+
+function postIndexEntryFromMarkdown(path, content) {
+  const post = parseFrontMatter(content, path);
+  const categories = splitValues(post.meta.categories || post.meta.category);
+  const subcategories = splitValues(post.meta.subcategories || post.meta.subcategory);
+  const fallbackSummary = (post.body || "").replace(/\s+/g, " ").slice(0, 160);
+  return {
+    path: publicContentPath(path),
+    title: post.meta.title || path.split("/").pop(),
+    date: post.meta.date || "",
+    showDate: post.meta.showDate === "false" ? false : true,
+    category: categories[0] || post.meta.category || "",
+    categories,
+    subcategory: subcategories[0] || post.meta.subcategory || "",
+    subcategories,
+    tags: splitValues(post.meta.tags),
+    cover: post.meta.cover || "",
+    summary: post.meta.summary || fallbackSummary,
+    featured: post.meta.featured === "true" || post.meta.featured === true,
+    status: post.meta.status === "draft" ? "draft" : "published",
+    format: post.meta.format || ""
+  };
+}
+
 function base64Url(buffer) {
   const bytes = new Uint8Array(buffer);
   let binary = "";
@@ -281,26 +327,73 @@ async function listFiles(env, request, prefix) {
   return listGithubFiles(env, key);
 }
 
-async function putFile(env, path, content, message) {
+async function readPostIndex(env, request) {
+  try {
+    const file = await getFile(env, request, "public/content/posts/index.json");
+    const entries = JSON.parse(file.content);
+    return Array.isArray(entries) ? entries : [];
+  } catch {
+    return [];
+  }
+}
+
+async function writePostIndex(env, entries) {
+  const path = "public/content/posts/index.json";
+  const content = `${JSON.stringify(entries
+    .sort((a, b) => (b.date || "").localeCompare(a.date || "")), null, 2)}\n`;
+  if (hasR2(env)) {
+    await env.BLOG_CONTENT.put(path, content, {
+      httpMetadata: { contentType: "application/json; charset=utf-8" },
+      customMetadata: { updatedBy: "blog-admin" }
+    });
+    return;
+  }
+  await putGithubFile(env, path, content, `Update ${path}`);
+}
+
+async function syncPostIndexEntry(env, request, path, content) {
+  const key = publicKey(path);
+  if (!key.startsWith("public/content/posts/") || !key.endsWith(".md")) return;
+  const entry = postIndexEntryFromMarkdown(key, content);
+  const entries = await readPostIndex(env, request);
+  const existing = entries.findIndex((item) => item.path === entry.path);
+  if (existing === -1) entries.push(entry);
+  else entries[existing] = entry;
+  await writePostIndex(env, entries);
+}
+
+async function removePostIndexEntry(env, request, path) {
+  const key = publicKey(path);
+  if (!key.startsWith("public/content/posts/") || !key.endsWith(".md")) return;
+  const targetPath = publicContentPath(key);
+  const entries = await readPostIndex(env, request);
+  await writePostIndex(env, entries.filter((item) => item.path !== targetPath));
+}
+
+async function putFile(env, request, path, content, message) {
   const key = publicKey(path);
   if (hasR2(env)) {
     await env.BLOG_CONTENT.put(key, content, {
       httpMetadata: { contentType: contentType(key) },
       customMetadata: { updatedBy: "blog-admin" }
     });
+    await syncPostIndexEntry(env, request, key, content);
     return { ok: true, storage: "r2" };
   }
   await putGithubFile(env, key, content, message);
+  await syncPostIndexEntry(env, request, key, content);
   return { ok: true, storage: "github" };
 }
 
-async function deleteFile(env, path, message) {
+async function deleteFile(env, request, path, message) {
   const key = publicKey(path);
   if (hasR2(env)) {
     await env.BLOG_CONTENT.delete(key);
+    await removePostIndexEntry(env, request, key);
     return { ok: true, storage: "r2" };
   }
   await deleteGithubFile(env, key, message);
+  await removePostIndexEntry(env, request, key);
   return { ok: true, storage: "github" };
 }
 
@@ -488,11 +581,11 @@ export async function onRequest(context) {
     }
     if (request.method === "PUT" && action === "file") {
       const body = await request.json();
-      return json(await putFile(env, body.path, body.content, body.message || `Update ${body.path}`));
+      return json(await putFile(env, request, body.path, body.content, body.message || `Update ${body.path}`));
     }
     if (request.method === "DELETE" && action === "file") {
       const body = await request.json();
-      return json(await deleteFile(env, body.path, body.message || `Delete ${body.path}`));
+      return json(await deleteFile(env, request, body.path, body.message || `Delete ${body.path}`));
     }
 
     return json({ error: "Not found" }, { status: 404 });

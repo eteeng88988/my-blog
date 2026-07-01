@@ -275,6 +275,15 @@ async function init() {
   const indexPost = posts.find((post) => post.path === file);
   if (indexPost?.meta.cover) meta.cover = indexPost.meta.cover;
   const pageType = file.startsWith("/content/posts/") ? "article" : "page";
+  if (pageType === "article" && (meta.status === "draft" || indexPost?.meta.status === "draft")) {
+    document.title = "文章未发布";
+    article.innerHTML = `
+      <a class="article-back" href="/">返回首页</a>
+      <h1>文章未发布</h1>
+      <p>这篇文章目前是草稿状态。</p>
+    `;
+    return;
+  }
   document.title = meta.title || "Article";
   const metaItems = [
     ...(meta.showDate && meta.date ? [meta.date] : []),
