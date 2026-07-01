@@ -32,6 +32,26 @@ body.dark {
 a { color: inherit; text-decoration: none; }
 button, input, textarea { font: inherit; }
 
+html.protect-content body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html.protect-content img,
+html.protect-content video {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+html.protect-content input,
+html.protect-content textarea,
+html.protect-content select,
+html.protect-content [contenteditable="true"],
+html.protect-content [data-allow-copy] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 .site-header {
   position: fixed;
   z-index: 20;

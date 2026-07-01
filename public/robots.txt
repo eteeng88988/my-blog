@@ -1,4 +1,6 @@
 User-agent: *
-Allow: /
+Disallow: /api/
+Disallow: /content/
+Disallow: /admin/
 
 Sitemap: https://my-blog-e1v.pages.dev/sitemap.xml

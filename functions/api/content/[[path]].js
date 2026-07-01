@@ -25,6 +25,44 @@ function hasR2(env) {
   return env.BLOG_CONTENT && typeof env.BLOG_CONTENT.get === "function";
 }
 
+const DOWNLOAD_USER_AGENT = /(curl|wget|python|scrapy|httpclient|libwww|go-http-client|java|node-fetch|axios|postman|insomnia|httrack|webzip|sitecopy|winhttp|powershell|invoke-webrequest)/i;
+
+function forbiddenResponse() {
+  return new Response("Protected content is only available inside the site.", {
+    status: 403,
+    headers: {
+      "Cache-Control": "no-store",
+      "Content-Type": "text/plain; charset=utf-8",
+      "X-Robots-Tag": "noindex, nofollow, noarchive, nosnippet"
+    }
+  });
+}
+
+function sameOriginBrowserFetch(request) {
+  const url = new URL(request.url);
+  const referrer = request.headers.get("Referer") || "";
+  if (referrer) {
+    try {
+      if (new URL(referrer).origin === url.origin) return true;
+    } catch {}
+  }
+
+  const fetchSite = request.headers.get("Sec-Fetch-Site") || "";
+  const fetchMode = request.headers.get("Sec-Fetch-Mode") || "";
+  return (fetchSite === "same-origin" || fetchSite === "same-site") && fetchMode !== "navigate";
+}
+
+function shouldBlockContentRequest(request) {
+  const userAgent = request.headers.get("User-Agent") || "";
+  if (DOWNLOAD_USER_AGENT.test(userAgent)) return true;
+
+  const fetchMode = request.headers.get("Sec-Fetch-Mode") || "";
+  const fetchDest = request.headers.get("Sec-Fetch-Dest") || "";
+  if (fetchMode === "navigate" || fetchDest === "document") return true;
+
+  return !sameOriginBrowserFetch(request);
+}
+
 async function readStaticAsset(request, key) {
   const url = new URL(assetPath(key), request.url);
   const res = await fetch(url.toString(), { cf: { cacheTtl: 0 } });
@@ -59,6 +97,7 @@ function shouldUseStaticPostIndex(staticText, r2Text) {
 export async function onRequest({ request, env, params }) {
   const relativePath = Array.isArray(params.path) ? params.path.join("/") : (params.path || "");
   if (!relativePath) return new Response("Not found", { status: 404 });
+  if (shouldBlockContentRequest(request)) return forbiddenResponse();
 
   const key = publicKey(relativePath);
   if (key === "public/content/posts/index.json") {
