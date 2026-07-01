@@ -401,9 +401,33 @@ body.dark .tag:hover { background: color-mix(in srgb, var(--accent) 42%, rgba(25
   border-radius: 6px;
   background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
+.ad-card.ad-image-only {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.ad-card.ad-image-only img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 5;
+  border-radius: 0;
+}
+.sidebar-ad-region {
+  margin: 0;
+}
+.sidebar-ad-region .ad-card.ad-image-only img {
+  aspect-ratio: 16 / 9;
+}
 .ad-region-wide .ad-card {
   grid-template-columns: minmax(0, 180px) minmax(0, 1fr);
   min-height: 106px;
+}
+.ad-region-wide .ad-card.ad-image-only {
+  min-height: 0;
+}
+.ad-region-wide .ad-card.ad-image-only img {
+  aspect-ratio: 16 / 4;
 }
 .ad-card strong { display: block; font-size: 15px; }
 .ad-card p { margin: 5px 0 0; color: var(--muted); line-height: 1.6; }

@@ -62,8 +62,14 @@ function renderAd(placement) {
   if (placement.html?.trim()) {
     return `<div class="ad-card ad-html">${placement.html}</div>`;
   }
+  if (placement.image) {
+    const image = `<img src="${escapeHtml(placement.image)}" alt="${escapeHtml(placement.title || "广告")}">`;
+    if (placement.url) {
+      return `<a class="ad-card ad-image-only" href="${escapeHtml(placement.url)}" target="_blank" rel="nofollow sponsored noreferrer" aria-label="${escapeHtml(placement.title || "广告")}">${image}</a>`;
+    }
+    return `<div class="ad-card ad-image-only">${image}</div>`;
+  }
   const body = `
-    ${placement.image ? `<img src="${escapeHtml(placement.image)}" alt="">` : ""}
     <div>
       <strong>${escapeHtml(placement.title || "广告")}</strong>
       ${placement.text ? `<p>${escapeHtml(placement.text)}</p>` : ""}

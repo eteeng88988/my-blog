@@ -40,6 +40,7 @@ const adSlots = [
   { value: "content-list", label: "内容列表广告位" },
   { value: "article-top", label: "文章页顶部广告位" },
   { value: "article-content", label: "文章内容广告位" },
+  { value: "sidebar-notice", label: "右侧栏公告下广告位" },
   { value: "footer", label: "底栏广告位" }
 ];
 

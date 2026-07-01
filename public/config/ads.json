@@ -147,6 +147,26 @@
       "html": ""
     },
     {
+      "id": "demo-sidebar-notice",
+      "enabled": true,
+      "slot": "sidebar-notice",
+      "pages": [
+        "all"
+      ],
+      "categories": [
+        "all"
+      ],
+      "subcategories": [
+        "all"
+      ],
+      "paths": [],
+      "title": "右侧栏广告示例",
+      "text": "位于右侧公告栏下方，首页、类目筛选和文章页都会显示。",
+      "url": "/article.html?file=%2Fcontent%2Fpages%2Fadvertising.md",
+      "image": "https://picsum.photos/seed/my-blog-sidebar-notice/900/520",
+      "html": ""
+    },
+    {
       "id": "demo-footer",
       "enabled": true,
       "slot": "footer",
