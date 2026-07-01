@@ -151,13 +151,13 @@ function renderCategoryTree(categoryConfig, posts, onFilter) {
       </button>
     `).join("");
     return `
-      <details>
-        <summary>
-          <span data-category="${escapeHtml(item.name)}">${escapeHtml(item.name)}</span>
+      <div class="category-menu-item">
+        <button class="category-trigger" type="button" data-category="${escapeHtml(item.name)}">
+          <span>${escapeHtml(item.name)}</span>
           <em>${categoryCounts.get(item.name) || 0}</em>
-        </summary>
-        <div>${children}</div>
-      </details>
+        </button>
+        <div class="category-dropdown">${children || "<span>暂无子目录</span>"}</div>
+      </div>
     `;
   }).join("");
   tree.querySelectorAll("[data-category]").forEach((button) => {

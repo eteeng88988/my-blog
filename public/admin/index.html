@@ -16,7 +16,7 @@
           <button type="submit">登录</button>
         </form>
         <p class="login-error" data-login-error hidden></p>
-        <p class="hint">后台密码由 Cloudflare Pages 环境变量 ADMIN_PASSWORD 或 ADMIN_PASSWORD_SHA256 设置。</p>
+        <p class="hint">后台密码可由 Cloudflare Pages 环境变量设置，也可登录后在“管理员”里修改。</p>
       </section>
 
       <section class="dashboard" data-dashboard hidden>
@@ -31,6 +31,7 @@
           <button data-tab="media">媒体</button>
           <button data-tab="stats">统计</button>
           <button data-tab="analytics">统计设置</button>
+          <button data-tab="admin">管理员</button>
           <button data-tab="site">站点</button>
           <button data-tab="theme">主题</button>
           <button data-tab="sidebar">侧边栏</button>
@@ -273,6 +274,27 @@
             </div>
             <button type="button" data-refresh-stats>刷新统计</button>
           </section>
+
+          <form class="panel config-form" data-panel="admin" data-admin-form hidden>
+            <div class="form-section-title">
+              <strong>管理员资料</strong>
+              <span>这里的资料只在后台使用，不会显示在前台页面。</span>
+            </div>
+            <div class="editor-grid">
+              <label>管理员名称<input name="displayName" placeholder="例如：站长"></label>
+              <label>后台备注<input name="note" placeholder="可留空"></label>
+            </div>
+            <div class="form-section-title">
+              <strong>修改后台密码</strong>
+              <span>留空则不修改密码。新密码会写入 R2 私有配置，不会通过前台接口公开。</span>
+            </div>
+            <div class="editor-grid">
+              <label>当前密码<input name="currentPassword" type="password" autocomplete="current-password"></label>
+              <label>新密码<input name="newPassword" type="password" autocomplete="new-password"></label>
+              <label>确认新密码<input name="confirmPassword" type="password" autocomplete="new-password"></label>
+            </div>
+            <button type="submit">保存管理员设置</button>
+          </form>
 
           <form class="panel config-form" data-panel="site" data-config-form="public/config/site.json" hidden>
             <label>网站标题<input name="title"></label>

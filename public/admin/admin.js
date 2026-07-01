@@ -9,6 +9,7 @@ let categoryConfig = { items: [] };
 let adConfig = { placements: [] };
 let sidebarConfig = { links: [] };
 let footerConfig = { links: [] };
+let adminSettings = {};
 let activePost = null;
 let activePage = null;
 let selectedPostPaths = new Set();
@@ -746,6 +747,17 @@ function collectFooterConfig() {
   };
 }
 
+async function loadAdminSettings() {
+  adminSettings = await api("/admin-settings");
+  fillForm($("[data-admin-form]"), {
+    displayName: adminSettings.displayName || "",
+    note: adminSettings.note || "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+}
+
 async function loadMenu() {
   const file = await api(`/file?path=${encodeURIComponent("public/config/menu.json")}`);
   menuItems = JSON.parse(file.content);
@@ -965,6 +977,30 @@ function collectAdItems() {
   };
 }
 
+function createAdPlacement(slot = "global-top") {
+  return {
+    id: `ad-${Date.now()}`,
+    enabled: true,
+    slot,
+    pages: ["all"],
+    categories: ["all"],
+    subcategories: ["all"],
+    paths: [],
+    title: "新广告",
+    text: "这里填写广告文案，保存后前台对应位置会显示。",
+    url: "",
+    image: "",
+    html: ""
+  };
+}
+
+function focusFirstAdRow() {
+  const row = $("[data-ad-row='0']");
+  if (!row) return;
+  row.scrollIntoView({ behavior: "smooth", block: "start" });
+  row.querySelector("[data-ad-title]")?.focus();
+}
+
 function normalizeAnalytics(values) {
   return {
     local: {
@@ -1026,6 +1062,7 @@ async function loadAllAdminData() {
     ...$$("[data-config-form]").map(loadConfig),
     loadSidebar(),
     loadFooter(),
+    loadAdminSettings(),
     loadMenu(),
     loadMedia(),
     loadAnalyticsConfig(),
@@ -1393,21 +1430,10 @@ function setupAdsForm() {
   const form = $("[data-ads-form]");
   $("[data-add-ad]").addEventListener("click", () => {
     adConfig.placements = adConfig.placements || [];
-    adConfig.placements.push({
-      id: `ad-${Date.now()}`,
-      enabled: false,
-      slot: "global-top",
-      pages: ["all"],
-      categories: ["all"],
-      subcategories: ["all"],
-      paths: [],
-      title: "",
-      text: "",
-      url: "",
-      image: "",
-      html: ""
-    });
+    adConfig.placements.unshift(createAdPlacement());
     renderAdEditor();
+    focusFirstAdRow();
+    setStatus("已在列表顶部新增一条广告，编辑后点击“保存广告设置”。");
   });
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -1462,6 +1488,45 @@ function setupAnalyticsForm() {
   });
 }
 
+function setupAdminForm() {
+  const form = $("[data-admin-form]");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const values = readForm(form);
+    if (values.newPassword || values.confirmPassword) {
+      if (!values.currentPassword) {
+        setStatus("修改密码需要填写当前密码。");
+        return;
+      }
+      if (values.newPassword.length < 8) {
+        setStatus("新密码至少需要 8 个字符。");
+        return;
+      }
+      if (values.newPassword !== values.confirmPassword) {
+        setStatus("两次输入的新密码不一致。");
+        return;
+      }
+    }
+    adminSettings = await api("/admin-settings", {
+      method: "PUT",
+      body: JSON.stringify({
+        displayName: values.displayName || "",
+        note: values.note || "",
+        currentPassword: values.currentPassword || "",
+        newPassword: values.newPassword || ""
+      })
+    });
+    fillForm(form, {
+      displayName: adminSettings.displayName || "",
+      note: adminSettings.note || "",
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: ""
+    });
+    setStatus(values.newPassword ? "管理员设置和后台密码已保存。" : "管理员设置已保存。");
+  });
+}
+
 function setupStatsActions() {
   $("[data-refresh-stats]").addEventListener("click", async () => {
     await loadStats();
@@ -1505,6 +1570,7 @@ setupMenuForm();
 setupAdsForm();
 setupMediaForm();
 setupAnalyticsForm();
+setupAdminForm();
 setupStatsActions();
 setupLogout();
 wireCategorySelects();

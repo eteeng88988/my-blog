@@ -27,6 +27,10 @@ function publicKey(path = "") {
   return key.startsWith("public/") ? key : `public/${key}`;
 }
 
+function privateKey(path = "") {
+  return `private/${cleanKey(path).replace(/^private\//, "")}`;
+}
+
 function assetPath(path = "") {
   return `/${publicKey(path).replace(/^public\//, "")}`;
 }
@@ -53,6 +57,34 @@ async function sha256Hex(value) {
   return [...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+async function readAdminSettings(env) {
+  if (!hasR2(env)) return {};
+  const object = await env.BLOG_CONTENT.get(privateKey("admin.json"));
+  if (!object) return {};
+  try {
+    return JSON.parse(await object.text());
+  } catch {
+    return {};
+  }
+}
+
+function publicAdminSettings(settings = {}, env) {
+  return {
+    displayName: settings.displayName || "",
+    note: settings.note || "",
+    passwordConfigured: Boolean(settings.passwordHash || getEnv(env, "ADMIN_PASSWORD") || getEnv(env, "ADMIN_PASSWORD_SHA256")),
+    updatedAt: settings.updatedAt || ""
+  };
+}
+
+async function writeAdminSettings(env, settings) {
+  if (!hasR2(env)) throw new Error("R2 绑定 BLOG_CONTENT 未配置，无法保存管理员设置");
+  await env.BLOG_CONTENT.put(privateKey("admin.json"), JSON.stringify(settings, null, 2), {
+    httpMetadata: { contentType: "application/json; charset=utf-8" },
+    customMetadata: { updatedBy: "blog-admin" }
+  });
+}
+
 async function hmac(secret, value) {
   const key = await crypto.subtle.importKey(
     "raw",
@@ -70,10 +102,13 @@ function cookieValue(request, name) {
 }
 
 async function passwordMatches(env, password) {
+  const adminSettings = await readAdminSettings(env);
+  if (adminSettings.passwordHash && await sha256Hex(password) === String(adminSettings.passwordHash).toLowerCase()) return true;
+
   const plainPassword = getEnv(env, "ADMIN_PASSWORD");
   const passwordHash = getEnv(env, "ADMIN_PASSWORD_SHA256").toLowerCase();
 
-  if (!plainPassword && !passwordHash) {
+  if (!adminSettings.passwordHash && !plainPassword && !passwordHash) {
     throw new Error("后台密码未设置：请在 Cloudflare Pages 环境变量中设置 ADMIN_PASSWORD 或 ADMIN_PASSWORD_SHA256");
   }
 
@@ -415,6 +450,27 @@ export async function onRequest(context) {
 
     const url = new URL(request.url);
     if (request.method === "GET" && action === "session") return json({ ok: true });
+    if (request.method === "GET" && action === "admin-settings") {
+      return json(publicAdminSettings(await readAdminSettings(env), env));
+    }
+    if (request.method === "PUT" && action === "admin-settings") {
+      const body = await request.json();
+      const settings = await readAdminSettings(env);
+      if (body.newPassword) {
+        if (!body.currentPassword || !await passwordMatches(env, body.currentPassword)) {
+          return json({ error: "当前密码不正确" }, { status: 401 });
+        }
+        if (String(body.newPassword).length < 8) {
+          return json({ error: "新密码至少需要 8 个字符" }, { status: 400 });
+        }
+        settings.passwordHash = await sha256Hex(String(body.newPassword));
+      }
+      settings.displayName = String(body.displayName || "").trim();
+      settings.note = String(body.note || "").trim();
+      settings.updatedAt = new Date().toISOString();
+      await writeAdminSettings(env, settings);
+      return json(publicAdminSettings(settings, env));
+    }
     if (request.method === "GET" && action === "storage") {
       return json({
         storage: hasR2(env) ? "r2" : "github",
