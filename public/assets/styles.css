@@ -99,6 +99,9 @@ button, input, textarea { font: inherit; }
   margin: 24px auto 0;
   padding-top: 18px;
 }
+.category-directory .section-title { margin-bottom: 12px; }
+.category-directory .section-title h2 { font-size: 20px; }
+.category-directory .section-title span { font-size: 13px; }
 
 .layout {
   width: min(1180px, calc(100vw - 40px));
@@ -173,7 +176,7 @@ body.dark .tag {
 }
 body.dark .tag:hover { background: color-mix(in srgb, var(--accent) 42%, rgba(255,255,255,.12)); }
 
-.sidebar { position: sticky; top: 88px; display: grid; gap: 18px; }
+.sidebar { display: grid; gap: 18px; align-self: start; }
 .card { padding: 20px; }
 .profile { text-align: center; }
 .avatar {
@@ -220,7 +223,7 @@ body.dark .tag:hover { background: color-mix(in srgb, var(--accent) 42%, rgba(25
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 .category-menu-item {
   position: relative;
@@ -229,16 +232,17 @@ body.dark .tag:hover { background: color-mix(in srgb, var(--accent) 42%, rgba(25
 .category-trigger {
   display: inline-grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
+  gap: 7px;
   align-items: center;
   max-width: min(300px, calc(100vw - 48px));
-  min-height: 42px;
+  min-height: 36px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  padding: 9px 13px;
+  padding: 7px 11px;
   color: var(--text);
   background: color-mix(in srgb, var(--panel) 88%, transparent);
   box-shadow: 0 10px 24px rgba(22,31,58,.06);
+  font-size: 13px;
   text-align: left;
   cursor: pointer;
 }
@@ -253,7 +257,7 @@ body.dark .tag:hover { background: color-mix(in srgb, var(--accent) 42%, rgba(25
 .category-dropdown em {
   color: var(--muted);
   font-style: normal;
-  font-size: 12px;
+  font-size: 11px;
 }
 .category-trigger:hover,
 .category-menu-item:focus-within .category-trigger {
@@ -290,9 +294,10 @@ body.dark .tag:hover { background: color-mix(in srgb, var(--accent) 42%, rgba(25
   min-width: 0;
   border: 0;
   border-radius: 7px;
-  padding: 9px 10px;
+  padding: 8px 9px;
   color: var(--muted);
   background: transparent;
+  font-size: 13px;
   text-align: left;
   cursor: pointer;
 }
@@ -304,6 +309,32 @@ body.dark .tag:hover { background: color-mix(in srgb, var(--accent) 42%, rgba(25
 .category-dropdown > span {
   padding: 8px;
   color: var(--muted);
+}
+.sidebar-category-tree {
+  align-items: stretch;
+  display: grid;
+  gap: 7px;
+}
+.sidebar-category-tree .category-menu-item { width: 100%; }
+.sidebar-category-tree .category-trigger {
+  width: 100%;
+  max-width: none;
+  min-height: 34px;
+  border-radius: 8px;
+  padding: 7px 10px;
+  box-shadow: none;
+  font-size: 12px;
+}
+.sidebar-category-tree .category-dropdown {
+  left: auto;
+  right: 0;
+  min-width: min(280px, calc(100vw - 40px));
+  max-width: min(320px, calc(100vw - 40px));
+  max-height: 300px;
+}
+.sidebar-category-tree .category-dropdown button {
+  padding: 7px 8px;
+  font-size: 12px;
 }
 
 .search-dialog {
@@ -370,6 +401,10 @@ body.dark .tag:hover { background: color-mix(in srgb, var(--accent) 42%, rgba(25
   border-radius: 6px;
   background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
+.ad-region-wide .ad-card {
+  grid-template-columns: minmax(0, 180px) minmax(0, 1fr);
+  min-height: 106px;
+}
 .ad-card strong { display: block; font-size: 15px; }
 .ad-card p { margin: 5px 0 0; color: var(--muted); line-height: 1.6; }
 .ad-html { display: block; overflow: hidden; }
@@ -403,6 +438,15 @@ body.dark .tag:hover { background: color-mix(in srgb, var(--accent) 42%, rgba(25
   width: min(900px, calc(100vw - 40px));
   margin: 110px auto 80px;
 }
+.article-layout {
+  width: min(1180px, calc(100vw - 40px));
+  margin: 110px auto 80px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+  align-items: start;
+}
+.article-main { min-width: 0; }
 .article { padding: 28px; }
 .article-back { color: var(--muted); }
 .article-cover {
@@ -523,11 +567,11 @@ body.dark .tag:hover { background: color-mix(in srgb, var(--accent) 42%, rgba(25
     right: 14px;
     top: 92px;
   }
-  .sidebar { position: static; }
+  .article-layout { grid-template-columns: 1fr; width: min(100vw - 28px, 680px); margin-top: 96px; }
   .post-card { grid-template-columns: 1fr; }
   .post-cover { aspect-ratio: 16 / 9; min-height: 0; }
   .hero { min-height: 390px; padding-inline: 18px; }
   .archive-summary, .archive-layout, .archive-row { grid-template-columns: 1fr; }
   .article-nav { grid-template-columns: 1fr; }
-  .ad-card { grid-template-columns: 1fr; }
+  .ad-card, .ad-region-wide .ad-card { grid-template-columns: 1fr; }
 }

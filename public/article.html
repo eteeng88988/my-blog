@@ -19,9 +19,39 @@
         <button class="icon-button" data-theme-toggle title="Toggle dark mode">◐</button>
       </div>
     </header>
-    <main class="article-shell">
-      <section class="ad-region" data-ad-slot="global-top" hidden></section>
-      <article class="article card" data-article>Loading...</article>
+    <main class="article-layout">
+      <div class="article-main">
+        <section class="ad-region" data-ad-slot="global-top" hidden></section>
+        <article class="article card" data-article>Loading...</article>
+      </div>
+      <aside class="sidebar article-sidebar">
+        <section class="profile card">
+          <img class="avatar" data-sidebar-avatar alt="">
+          <h3 data-sidebar-name>Lexiao</h3>
+          <p data-sidebar-bio></p>
+          <div class="stats">
+            <span><strong data-stat-posts>0</strong>文章</span>
+            <span><strong data-stat-tags>0</strong>标签</span>
+            <span><strong data-stat-cats>0</strong>分类</span>
+          </div>
+          <div class="profile-links">
+            <div data-sidebar-links></div>
+          </div>
+          <div class="profile-custom" data-sidebar-custom></div>
+        </section>
+        <section class="card notice">
+          <h3>公告</h3>
+          <p data-sidebar-notice></p>
+        </section>
+        <section class="card">
+          <h3>分类目录</h3>
+          <div class="category-tree sidebar-category-tree" data-sidebar-category-tree></div>
+        </section>
+        <section class="card">
+          <h3>标签</h3>
+          <div class="tag-cloud" data-tags></div>
+        </section>
+      </aside>
     </main>
     <section class="ad-region ad-region-wide" data-ad-slot="footer" hidden></section>
     <footer class="site-footer">

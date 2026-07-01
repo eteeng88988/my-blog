@@ -101,6 +101,101 @@ function renderMenu(menu) {
   document.querySelector("[data-menu]").innerHTML = menu.map((item) => `<a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a>`).join("");
 }
 
+function sidebarHref(item) {
+  const value = String(item.url || "").trim();
+  if (item.type === "email") return value.startsWith("mailto:") ? value : `mailto:${value}`;
+  if (item.type === "tel") return value.startsWith("tel:") ? value : `tel:${value}`;
+  if (/^(https?:|mailto:|tel:|\/|#)/i.test(value)) return value;
+  return value ? `#${encodeURIComponent(value)}` : "#";
+}
+
+function filterHref(type, value) {
+  const params = new URLSearchParams();
+  params.set(type, value);
+  return `/?${params.toString()}#posts`;
+}
+
+function postCategories(post) {
+  return post.meta?.categories || [];
+}
+
+function postSubcategories(post) {
+  return post.meta?.subcategories || [];
+}
+
+function postTags(post) {
+  return post.meta?.tags || [];
+}
+
+function renderSidebarCategoryTree(categoryConfig, posts) {
+  const tree = document.querySelector("[data-sidebar-category-tree]");
+  if (!tree) return;
+  const categoryCounts = new Map();
+  const subcategoryCounts = new Map();
+  posts.forEach((post) => {
+    postCategories(post).forEach((name) => categoryCounts.set(name, (categoryCounts.get(name) || 0) + 1));
+    postSubcategories(post).forEach((name) => subcategoryCounts.set(name, (subcategoryCounts.get(name) || 0) + 1));
+  });
+  tree.innerHTML = (categoryConfig.items || []).map((item) => {
+    const children = (item.children || []).map((child) => `
+      <button type="button" data-subcategory="${escapeHtml(child)}">
+        <span>${escapeHtml(child)}</span>
+        <em>${subcategoryCounts.get(child) || 0}</em>
+      </button>
+    `).join("");
+    return `
+      <div class="category-menu-item">
+        <button class="category-trigger" type="button" data-category="${escapeHtml(item.name)}">
+          <span>${escapeHtml(item.name)}</span>
+          <em>${categoryCounts.get(item.name) || 0}</em>
+        </button>
+        <div class="category-dropdown">${children || "<span>暂无子目录</span>"}</div>
+      </div>
+    `;
+  }).join("");
+  tree.querySelectorAll("[data-category]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      location.href = filterHref("category", button.dataset.category);
+    });
+  });
+  tree.querySelectorAll("[data-subcategory]").forEach((button) => {
+    button.addEventListener("click", () => {
+      location.href = filterHref("subcategory", button.dataset.subcategory);
+    });
+  });
+}
+
+function renderSidebar(sidebar, posts, categoryConfig) {
+  const tags = new Set(posts.flatMap(postTags));
+  const cats = new Set(posts.flatMap(postCategories));
+  const avatar = document.querySelector("[data-sidebar-avatar]");
+  if (avatar) avatar.src = sidebar.avatar || "";
+  document.querySelector("[data-sidebar-name]").textContent = sidebar.name || "";
+  document.querySelector("[data-sidebar-bio]").textContent = sidebar.bio || "";
+  document.querySelector("[data-sidebar-notice]").textContent = sidebar.notice || "";
+  const links = Array.isArray(sidebar.links) && sidebar.links.length
+    ? sidebar.links
+    : [
+      sidebar.github ? { label: "GitHub", type: "link", url: sidebar.github, enabled: true } : null,
+      sidebar.email ? { label: "邮箱", type: "email", url: sidebar.email, enabled: true } : null
+    ].filter(Boolean);
+  document.querySelector("[data-sidebar-links]").innerHTML = links
+    .filter((item) => item.enabled !== false)
+    .map((item) => item.type === "html"
+      ? `<span class="profile-link-html">${item.html || item.label || ""}</span>`
+      : `<a href="${escapeHtml(sidebarHref(item))}" target="${item.type === "link" ? "_blank" : "_self"}" rel="noreferrer">${escapeHtml(item.label || item.url)}</a>`)
+    .join("");
+  document.querySelector("[data-sidebar-custom]").innerHTML = sidebar.customHtml || "";
+  document.querySelector("[data-stat-posts]").textContent = posts.length;
+  document.querySelector("[data-stat-tags]").textContent = tags.size;
+  document.querySelector("[data-stat-cats]").textContent = cats.size;
+  document.querySelector("[data-tags]").innerHTML = [...tags]
+    .map((tag) => `<a class="tag filter-tag" href="${escapeHtml(filterHref("tag", tag))}"># ${escapeHtml(tag)}</a>`)
+    .join("");
+  renderSidebarCategoryTree(categoryConfig, posts);
+}
+
 function articleHref(path) {
   return `/article.html?file=${encodeURIComponent(path)}`;
 }
@@ -157,11 +252,13 @@ async function init() {
   const file = new URL(location.href).searchParams.get("file");
   const validPath = file?.startsWith("/content/posts/") || file?.startsWith("/content/pages/");
   if (!file || !validPath) throw new Error("Invalid article path");
-  const [site, menu, theme, footer, postIndex, res] = await Promise.all([
+  const [site, menu, theme, footer, sidebar, categories, postIndex, res] = await Promise.all([
     getJson("/config/site.json"),
     getJson("/config/menu.json"),
     getJson("/config/theme.json"),
     getJson("/config/footer.json").catch(() => ({})),
+    getJson("/config/sidebar.json"),
+    getJson("/config/categories.json"),
     getJson("/content/posts/index.json"),
     fetch(contentUrl(file), { cache: "no-store" })
   ]);
@@ -173,6 +270,7 @@ async function init() {
   setupTheme(theme);
 
   const posts = (await loadPostsFromIndex(postIndex)).sort((a, b) => b.meta.date.localeCompare(a.meta.date));
+  renderSidebar(sidebar, posts.filter((post) => post.meta.status !== "draft"), categories);
   const { meta, body } = parseFrontMatter(await res.text(), file);
   const pageType = file.startsWith("/content/posts/") ? "article" : "page";
   document.title = meta.title || "Article";

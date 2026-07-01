@@ -911,14 +911,22 @@ function parseAdItems(value) {
 
 async function loadAds() {
   const file = await api(`/file?path=${encodeURIComponent("public/config/ads.json")}`);
-  adConfig = JSON.parse(file.content);
+  const parsed = JSON.parse(file.content || "{}");
+  adConfig = {
+    placements: Array.isArray(parsed.placements) ? parsed.placements : []
+  };
   renderAdEditor();
 }
 
 function renderAdEditor() {
   const categoryOptions = [{ value: "all", label: "全部大类" }, ...allCategories().map((name) => ({ value: name, label: name }))];
   const subcategoryOptions = [{ value: "all", label: "全部子类" }, ...allSubcategories().map((name) => ({ value: name, label: name }))];
-  $("[data-ad-items]").innerHTML = (adConfig.placements || []).map((item, index) => `
+  const placements = adConfig.placements || [];
+  if (!placements.length) {
+    $("[data-ad-items]").innerHTML = `<p class="hint">还没有广告。点击“新增广告”后，会在这里出现可编辑的广告位。</p>`;
+    return;
+  }
+  $("[data-ad-items]").innerHTML = placements.map((item, index) => `
     <div class="structured-row ad-row" data-ad-row="${index}">
       <label>启用
         <select data-ad-enabled>
@@ -1428,12 +1436,18 @@ function setupCategoriesForm() {
 
 function setupAdsForm() {
   const form = $("[data-ads-form]");
-  $("[data-add-ad]").addEventListener("click", () => {
-    adConfig.placements = adConfig.placements || [];
-    adConfig.placements.unshift(createAdPlacement());
-    renderAdEditor();
-    focusFirstAdRow();
-    setStatus("已在列表顶部新增一条广告，编辑后点击“保存广告设置”。");
+  $("[data-add-ad]").addEventListener("click", (event) => {
+    event.preventDefault();
+    try {
+      if ($$("[data-ad-row]").length) adConfig = collectAdItems();
+      adConfig.placements = adConfig.placements || [];
+      adConfig.placements.unshift(createAdPlacement());
+      renderAdEditor();
+      focusFirstAdRow();
+      setStatus(`已在列表顶部新增一条广告，当前共 ${adConfig.placements.length} 条，编辑后点击“保存广告设置”。`);
+    } catch (error) {
+      setStatus(`新增广告失败：${error.message}`);
+    }
   });
   form.addEventListener("submit", async (event) => {
     event.preventDefault();

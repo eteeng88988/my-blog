@@ -134,16 +134,16 @@ function renderSidebar(sidebar, posts, onFilter) {
   });
 }
 
-function renderCategoryTree(categoryConfig, posts, onFilter) {
-  const tree = $("[data-category-tree]");
-  if (!tree) return;
+function renderCategoryTree(categoryConfig, posts, onFilter, selector = "[data-category-tree]") {
+  const trees = [...document.querySelectorAll(selector)];
+  if (!trees.length) return;
   const categoryCounts = new Map();
   const subcategoryCounts = new Map();
   posts.forEach((post) => {
     post.categories.forEach((name) => categoryCounts.set(name, (categoryCounts.get(name) || 0) + 1));
     post.subcategories.forEach((name) => subcategoryCounts.set(name, (subcategoryCounts.get(name) || 0) + 1));
   });
-  tree.innerHTML = (categoryConfig.items || []).map((item) => {
+  const html = (categoryConfig.items || []).map((item) => {
     const children = (item.children || []).map((child) => `
       <button type="button" data-subcategory="${escapeHtml(child)}">
         <span>${escapeHtml(child)}</span>
@@ -160,16 +160,19 @@ function renderCategoryTree(categoryConfig, posts, onFilter) {
       </div>
     `;
   }).join("");
-  tree.querySelectorAll("[data-category]").forEach((button) => {
-    button.dataset.filterBound = "true";
-    button.addEventListener("click", (event) => {
-      event.preventDefault();
-      onFilter({ type: "category", value: button.dataset.category });
+  trees.forEach((tree) => {
+    tree.innerHTML = html;
+    tree.querySelectorAll("[data-category]").forEach((button) => {
+      button.dataset.filterBound = "true";
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        onFilter({ type: "category", value: button.dataset.category });
+      });
     });
-  });
-  tree.querySelectorAll("[data-subcategory]").forEach((button) => {
-    button.dataset.filterBound = "true";
-    button.addEventListener("click", () => onFilter({ type: "subcategory", value: button.dataset.subcategory }));
+    tree.querySelectorAll("[data-subcategory]").forEach((button) => {
+      button.dataset.filterBound = "true";
+      button.addEventListener("click", () => onFilter({ type: "subcategory", value: button.dataset.subcategory }));
+    });
   });
 }
 
@@ -309,16 +312,18 @@ async function init() {
   renderPosts(posts, null);
   const applyFilter = setupPostFilters(posts);
   renderSidebar(sidebar, posts, applyFilter);
-  renderCategoryTree(categories, posts, applyFilter);
+  renderCategoryTree(categories, posts, applyFilter, "[data-category-tree], [data-sidebar-category-tree]");
   setupTheme(theme);
   setupSearch(posts);
   setupBackTop();
   const params = new URLSearchParams(location.search);
   const categoryParam = params.get("category");
   const subcategoryParam = params.get("subcategory");
+  const tagParam = params.get("tag");
   if (categoryParam) applyFilter({ type: "category", value: categoryParam });
   if (subcategoryParam) applyFilter({ type: "subcategory", value: subcategoryParam });
-  if (!categoryParam && !subcategoryParam) await renderAdSlots({ page: "home" });
+  if (tagParam) applyFilter({ type: "tag", value: tagParam });
+  if (!categoryParam && !subcategoryParam && !tagParam) await renderAdSlots({ page: "home" });
   trackPageView({ page: "home", title: document.title });
 }
 
