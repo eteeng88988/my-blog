@@ -1,4 +1,4 @@
-import { getJson, getText, renderAdSlots, trackPageView } from "./runtime.js";
+import { getJson, getText, renderAdSlots, renderFooter, trackPageView } from "./runtime.js";
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -110,17 +110,18 @@ function renderArchive(posts) {
 
 async function init() {
   const postIndex = await getJson("/content/posts/index.json");
-  const [site, menu, theme] = await Promise.all([
+  const [site, menu, theme, footer] = await Promise.all([
     getJson("/config/site.json"),
     getJson("/config/menu.json"),
-    getJson("/config/theme.json")
+    getJson("/config/theme.json"),
+    getJson("/config/footer.json").catch(() => ({}))
   ]);
   const posts = (await loadPostsFromIndex(postIndex))
     .filter((post) => post.status !== "draft")
     .sort((a, b) => b.date.localeCompare(a.date));
   document.title = `归档 - ${site.title}`;
   $("[data-site-title]").textContent = site.title;
-  $("[data-site-footer]").textContent = site.copyright || `© ${new Date().getFullYear()} ${site.title}`;
+  renderFooter(site, footer);
   renderMenu(menu);
   setupTheme(theme);
   renderArchive(posts);

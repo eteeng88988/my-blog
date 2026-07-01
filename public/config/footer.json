@@ -1,0 +1,46 @@
+{
+  "text": "2026 My Blog",
+  "links": [
+    {
+      "label": "常见问题",
+      "href": "/article.html?file=%2Fcontent%2Fpages%2Ffaq.md",
+      "enabled": true
+    },
+    {
+      "label": "隐私政策",
+      "href": "/article.html?file=%2Fcontent%2Fpages%2Fprivacy.md",
+      "enabled": true
+    },
+    {
+      "label": "使用说明",
+      "href": "/article.html?file=%2Fcontent%2Fpages%2Fusage.md",
+      "enabled": true
+    },
+    {
+      "label": "联系方式",
+      "href": "/article.html?file=%2Fcontent%2Fpages%2Fcontact.md",
+      "enabled": true
+    },
+    {
+      "label": "广告业务",
+      "href": "/article.html?file=%2Fcontent%2Fpages%2Fadvertising.md",
+      "enabled": true
+    },
+    {
+      "label": "关于退款",
+      "href": "/article.html?file=%2Fcontent%2Fpages%2Frefund.md",
+      "enabled": true
+    },
+    {
+      "label": "RSS",
+      "href": "/feed.xml",
+      "enabled": true
+    },
+    {
+      "label": "Sitemap",
+      "href": "/sitemap.xml",
+      "enabled": true
+    }
+  ],
+  "html": ""
+}

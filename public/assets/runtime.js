@@ -30,6 +30,13 @@ function escapeHtml(value = "") {
   })[char]);
 }
 
+function safeHref(value = "") {
+  const href = String(value || "").trim();
+  if (!href) return "#";
+  if (/^(https?:|mailto:|tel:|\/|#)/i.test(href)) return href;
+  return `/${href.replace(/^\/+/, "")}`;
+}
+
 function normalizeList(value) {
   if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
   return String(value || "").split(",").map((item) => item.trim()).filter(Boolean);
@@ -66,6 +73,26 @@ function renderAd(placement) {
     return `<a class="ad-card" href="${escapeHtml(placement.url)}" target="_blank" rel="nofollow sponsored noreferrer">${body}</a>`;
   }
   return `<div class="ad-card">${body}</div>`;
+}
+
+export function renderFooter(site = {}, footer = {}) {
+  const textEl = document.querySelector("[data-site-footer]");
+  const linksEl = document.querySelector("[data-footer-links]");
+  const htmlEl = document.querySelector("[data-footer-html]");
+  if (textEl) textEl.textContent = footer.text || site.copyright || `© ${new Date().getFullYear()} ${site.title || "My Blog"}`;
+  if (linksEl) {
+    const links = Array.isArray(footer.links) && footer.links.length
+      ? footer.links
+      : [
+        { label: "RSS", href: "/feed.xml", enabled: true },
+        { label: "Sitemap", href: "/sitemap.xml", enabled: true }
+      ];
+    linksEl.innerHTML = links
+      .filter((item) => item.enabled !== false)
+      .map((item) => `<a href="${escapeHtml(safeHref(item.href))}">${escapeHtml(item.label || item.href)}</a>`)
+      .join("");
+  }
+  if (htmlEl) htmlEl.innerHTML = footer.html || "";
 }
 
 export async function renderAdSlots(context = {}) {

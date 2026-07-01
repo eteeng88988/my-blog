@@ -1,114 +1,168 @@
 {
   "placements": [
     {
-      "id": "global-top",
-      "enabled": false,
+      "id": "demo-global-top",
+      "enabled": true,
       "slot": "global-top",
-      "pages": ["all"],
-      "categories": ["all"],
-      "subcategories": ["all"],
+      "pages": [
+        "all"
+      ],
+      "categories": [
+        "all"
+      ],
+      "subcategories": [
+        "all"
+      ],
       "paths": [],
-      "title": "全站顶部广告",
-      "text": "",
-      "url": "",
+      "title": "全站顶部广告示例",
+      "text": "所有页面顶部展示，适合重要合作、长期品牌或站点公告。",
+      "url": "/article.html?file=%2Fcontent%2Fpages%2Fadvertising.md",
       "image": "",
       "html": ""
     },
     {
-      "id": "home-top",
-      "enabled": false,
+      "id": "demo-home-top",
+      "enabled": true,
       "slot": "home-top",
-      "pages": ["home"],
-      "categories": ["all"],
-      "subcategories": ["all"],
+      "pages": [
+        "home"
+      ],
+      "categories": [
+        "all"
+      ],
+      "subcategories": [
+        "all"
+      ],
       "paths": [],
-      "title": "首页广告",
-      "text": "",
-      "url": "",
+      "title": "首页广告示例",
+      "text": "首页信息流上方展示，适合核心转化入口。",
+      "url": "/article.html?file=%2Fcontent%2Fpages%2Fadvertising.md",
       "image": "",
       "html": ""
     },
     {
-      "id": "category-top",
-      "enabled": false,
+      "id": "demo-category-top",
+      "enabled": true,
       "slot": "category-top",
-      "pages": ["home", "article"],
-      "categories": ["all"],
-      "subcategories": ["all"],
+      "pages": [
+        "home",
+        "article"
+      ],
+      "categories": [
+        "all"
+      ],
+      "subcategories": [
+        "all"
+      ],
       "paths": [],
-      "title": "大类目广告",
-      "text": "",
-      "url": "",
+      "title": "大类目广告示例",
+      "text": "可设置全部大类或指定大类展示。",
+      "url": "/article.html?file=%2Fcontent%2Fpages%2Fadvertising.md",
       "image": "",
       "html": ""
     },
     {
-      "id": "subcategory-top",
-      "enabled": false,
+      "id": "demo-subcategory-top",
+      "enabled": true,
       "slot": "subcategory-top",
-      "pages": ["home", "article"],
-      "categories": ["all"],
-      "subcategories": ["all"],
+      "pages": [
+        "home",
+        "article"
+      ],
+      "categories": [
+        "all"
+      ],
+      "subcategories": [
+        "all"
+      ],
       "paths": [],
-      "title": "子类目广告",
-      "text": "",
-      "url": "",
+      "title": "子类目广告示例",
+      "text": "可设置全部子类或指定子类展示。",
+      "url": "/article.html?file=%2Fcontent%2Fpages%2Fadvertising.md",
       "image": "",
       "html": ""
     },
     {
-      "id": "content-list",
-      "enabled": false,
+      "id": "demo-content-list",
+      "enabled": true,
       "slot": "content-list",
-      "pages": ["home", "archive", "media"],
-      "categories": ["all"],
-      "subcategories": ["all"],
+      "pages": [
+        "home",
+        "archive",
+        "media"
+      ],
+      "categories": [
+        "all"
+      ],
+      "subcategories": [
+        "all"
+      ],
       "paths": [],
-      "title": "内容列表广告",
-      "text": "",
-      "url": "",
+      "title": "内容列表广告示例",
+      "text": "显示在列表区域，适合内容推荐或产品入口。",
+      "url": "/article.html?file=%2Fcontent%2Fpages%2Fadvertising.md",
       "image": "",
       "html": ""
     },
     {
-      "id": "article-top",
-      "enabled": false,
+      "id": "demo-article-top",
+      "enabled": true,
       "slot": "article-top",
-      "pages": ["article", "page"],
-      "categories": ["all"],
-      "subcategories": ["all"],
+      "pages": [
+        "article",
+        "page"
+      ],
+      "categories": [
+        "all"
+      ],
+      "subcategories": [
+        "all"
+      ],
       "paths": [],
-      "title": "文章顶部广告",
-      "text": "",
-      "url": "",
+      "title": "文章顶部广告示例",
+      "text": "位于文章标题上方，适合高曝光广告。",
+      "url": "/article.html?file=%2Fcontent%2Fpages%2Fadvertising.md",
       "image": "",
       "html": ""
     },
     {
-      "id": "article-content",
-      "enabled": false,
+      "id": "demo-article-content",
+      "enabled": true,
       "slot": "article-content",
-      "pages": ["article", "page"],
-      "categories": ["all"],
-      "subcategories": ["all"],
+      "pages": [
+        "article",
+        "page"
+      ],
+      "categories": [
+        "all"
+      ],
+      "subcategories": [
+        "all"
+      ],
       "paths": [],
-      "title": "文章内容广告",
-      "text": "",
-      "url": "",
+      "title": "文章正文广告示例",
+      "text": "位于正文前，可用于内容相关广告。",
+      "url": "/article.html?file=%2Fcontent%2Fpages%2Fadvertising.md",
       "image": "",
       "html": ""
     },
     {
-      "id": "footer",
-      "enabled": false,
+      "id": "demo-footer",
+      "enabled": true,
       "slot": "footer",
-      "pages": ["all"],
-      "categories": ["all"],
-      "subcategories": ["all"],
+      "pages": [
+        "all"
+      ],
+      "categories": [
+        "all"
+      ],
+      "subcategories": [
+        "all"
+      ],
       "paths": [],
-      "title": "底栏广告",
-      "text": "",
-      "url": "",
+      "title": "底栏广告示例",
+      "text": "全站底部展示，可在后台改为首页、全部类目或指定类目。",
+      "url": "/article.html?file=%2Fcontent%2Fpages%2Fadvertising.md",
       "image": "",
       "html": ""
     }

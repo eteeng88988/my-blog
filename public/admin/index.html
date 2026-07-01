@@ -34,6 +34,7 @@
           <button data-tab="site">站点</button>
           <button data-tab="theme">主题</button>
           <button data-tab="sidebar">侧边栏</button>
+          <button data-tab="footer">底栏</button>
           <button data-logout>退出登录</button>
         </aside>
 
@@ -118,10 +119,24 @@
               </label>
             </section>
 
+            <section class="bulk-bar" aria-label="文章批量操作">
+              <label class="check-line"><input type="checkbox" data-select-page-posts> 选择本页</label>
+              <button type="button" class="ghost-button" data-select-filtered-posts>选择当前筛选结果</button>
+              <button type="button" class="ghost-button" data-select-all-posts>选择全部文章</button>
+              <button type="button" class="ghost-button" data-clear-post-selection>清空选择</button>
+              <span data-selected-post-count>已选 0 篇</span>
+              <select data-bulk-status>
+                <option value="published">设为公开发布</option>
+                <option value="draft">设为草稿</option>
+              </select>
+              <button type="button" data-apply-post-status>应用到已选文章</button>
+            </section>
+
             <section class="table-shell">
               <table class="post-table">
                 <thead>
                   <tr>
+                    <th class="select-col">选择</th>
                     <th>文章</th>
                     <th>状态</th>
                     <th>分类</th>
@@ -289,14 +304,31 @@
             <button type="submit">保存主题</button>
           </form>
 
-          <form class="panel config-form" data-panel="sidebar" data-config-form="public/config/sidebar.json" hidden>
+          <form class="panel config-form" data-panel="sidebar" data-sidebar-form hidden>
             <label>头像<input name="avatar"></label>
             <label>昵称<input name="name"></label>
             <label>简介<textarea name="bio" rows="3"></textarea></label>
-            <label>GitHub<input name="github"></label>
-            <label>邮箱<input name="email"></label>
             <label>公告<textarea name="notice" rows="4"></textarea></label>
+            <div class="form-section-title">
+              <strong>联系方式标签</strong>
+              <span>名称、链接和类型都可以自己改；自定义 HTML 会原样显示在侧边栏。</span>
+            </div>
+            <div class="structured-list" data-sidebar-links></div>
+            <button type="button" data-add-sidebar-link>新增联系方式标签</button>
+            <label>侧边栏自定义 HTML<textarea name="customHtml" rows="6" placeholder="<div>这里可以放自定义代码</div>"></textarea></label>
             <button type="submit">保存侧边栏</button>
+          </form>
+
+          <form class="panel config-form" data-panel="footer" data-footer-form hidden>
+            <label>底栏说明文字<input name="text"></label>
+            <div class="form-section-title">
+              <strong>底栏链接</strong>
+              <span>可链接到内容页，也可填写外部 URL。</span>
+            </div>
+            <div class="structured-list" data-footer-links></div>
+            <button type="button" data-add-footer-link>新增底栏链接</button>
+            <label>底栏自定义 HTML<textarea name="html" rows="6" placeholder="<div>这里可以放底栏代码</div>"></textarea></label>
+            <button type="submit">保存底栏</button>
           </form>
 
           <form class="panel config-form" data-panel="analytics" data-analytics-form hidden>

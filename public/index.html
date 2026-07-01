@@ -58,13 +58,17 @@
               <span><strong data-stat-cats>0</strong>分类</span>
             </div>
             <div class="profile-links">
-              <a data-sidebar-github target="_blank" rel="noreferrer">GitHub</a>
-              <a data-sidebar-email>邮箱</a>
+              <div data-sidebar-links></div>
             </div>
+            <div class="profile-custom" data-sidebar-custom></div>
           </section>
           <section class="card notice">
             <h3>公告</h3>
             <p data-sidebar-notice></p>
+          </section>
+          <section class="card" id="categories">
+            <h3>分类目录</h3>
+            <div class="category-tree" data-category-tree></div>
           </section>
           <section class="card">
             <h3>标签</h3>
@@ -78,8 +82,11 @@
 
     <footer class="site-footer">
       <span data-site-footer>2026 My Blog</span>
-      <a href="/feed.xml">RSS</a>
-      <a href="/sitemap.xml">Sitemap</a>
+      <nav data-footer-links>
+        <a href="/feed.xml">RSS</a>
+        <a href="/sitemap.xml">Sitemap</a>
+      </nav>
+      <div data-footer-html></div>
     </footer>
 
     <dialog class="search-dialog" data-search-dialog>

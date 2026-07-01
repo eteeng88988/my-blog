@@ -204,11 +204,15 @@ async function listStaticFiles(request, prefix) {
       : "";
   if (!indexPath) return [];
   const index = await fetchStaticFile(request, indexPath);
-  return JSON.parse(index.content).map((path) => ({
+  return JSON.parse(index.content).map((item) => indexEntryPath(item)).filter(Boolean).map((path) => ({
     path: publicKey(path),
     sha: "static",
     name: path.split("/").pop()
   }));
+}
+
+function indexEntryPath(item) {
+  return typeof item === "string" ? item : (item?.path || "");
 }
 
 async function getFile(env, request, path) {
@@ -271,6 +275,7 @@ async function seedR2(env, request) {
     "public/config/site.json",
     "public/config/menu.json",
     "public/config/sidebar.json",
+    "public/config/footer.json",
     "public/config/theme.json",
     "public/config/ads.json",
     "public/config/analytics.json",
@@ -286,7 +291,7 @@ async function seedR2(env, request) {
   for (const indexPath of ["public/content/posts/index.json", "public/content/pages/index.json"]) {
     try {
       const index = await fetchStaticFile(request, indexPath);
-      JSON.parse(index.content).forEach((path) => paths.add(publicKey(path)));
+      JSON.parse(index.content).map((item) => indexEntryPath(item)).filter(Boolean).forEach((path) => paths.add(publicKey(path)));
     } catch {
       // Missing seed indexes should not block the rest of the migration.
     }

@@ -180,12 +180,75 @@ button, input, textarea { font: inherit; }
 }
 .stats span { color: var(--muted); font-size: 12px; }
 .stats strong { display: block; color: var(--text); font-size: 20px; }
-.profile-links { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.profile-links a {
+.profile-links > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.profile-links a,
+.profile-link-html {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
   padding: 10px;
   border-radius: 8px;
   color: #fff;
   background: var(--accent);
+}
+.profile-custom {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.category-tree {
+  display: grid;
+  gap: 8px;
+}
+.category-tree details {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+}
+.category-tree summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.category-tree summary::marker { color: var(--muted); }
+.category-tree [data-category],
+.category-tree button {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  color: var(--text);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.category-tree summary [data-category] { font-weight: 700; }
+.category-tree div {
+  display: grid;
+  gap: 6px;
+  padding: 0 12px 12px;
+}
+.category-tree div button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 7px 0 7px 10px;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--muted);
+}
+.category-tree em {
+  color: var(--muted);
+  font-style: normal;
+  font-size: 12px;
 }
 
 .search-dialog {
@@ -262,13 +325,24 @@ button, input, textarea { font: inherit; }
   padding: 20px 0 0;
   border-top: 1px solid var(--line);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 14px;
   color: var(--muted);
   font-size: 13px;
 }
+.site-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
 .site-footer a { color: var(--accent); font-weight: 700; }
+.site-footer [data-footer-html] {
+  flex-basis: 100%;
+  text-align: center;
+}
 
 .article-shell {
   width: min(900px, calc(100vw - 40px));

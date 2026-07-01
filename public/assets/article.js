@@ -1,4 +1,4 @@
-import { contentUrl, getJson, getText, renderAdSlots, trackPageView } from "./runtime.js";
+import { contentUrl, getJson, getText, renderAdSlots, renderFooter, trackPageView } from "./runtime.js";
 
 const article = document.querySelector("[data-article]");
 const toggle = document.querySelector("[data-theme-toggle]");
@@ -157,17 +157,18 @@ async function init() {
   const file = new URL(location.href).searchParams.get("file");
   const validPath = file?.startsWith("/content/posts/") || file?.startsWith("/content/pages/");
   if (!file || !validPath) throw new Error("Invalid article path");
-  const [site, menu, theme, postIndex, res] = await Promise.all([
+  const [site, menu, theme, footer, postIndex, res] = await Promise.all([
     getJson("/config/site.json"),
     getJson("/config/menu.json"),
     getJson("/config/theme.json"),
+    getJson("/config/footer.json").catch(() => ({})),
     getJson("/content/posts/index.json"),
     fetch(contentUrl(file), { cache: "no-store" })
   ]);
   if (!res.ok) throw new Error("Article not found");
 
   document.querySelector("[data-site-title]").textContent = site.title;
-  document.querySelector("[data-site-footer]").textContent = site.copyright || `© ${new Date().getFullYear()} ${site.title}`;
+  renderFooter(site, footer);
   renderMenu(menu);
   setupTheme(theme);
 

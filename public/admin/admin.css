@@ -197,6 +197,37 @@ label { display: grid; gap: 7px; color: var(--muted); font-size: 13px; }
   border-bottom: 1px solid var(--line);
   background: #fbfcff;
 }
+.bulk-bar {
+  display: grid;
+  grid-template-columns: auto auto auto auto minmax(110px, 1fr) minmax(160px, 190px) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+.bulk-bar button,
+.bulk-bar select {
+  min-height: 40px;
+}
+.bulk-bar [data-selected-post-count] {
+  color: var(--muted);
+  font-size: 13px;
+}
+.check-line {
+  display: inline-flex;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  white-space: nowrap;
+}
+.check-line input,
+.select-col input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
 .table-shell {
   min-height: 420px;
   overflow: auto;
@@ -211,6 +242,10 @@ label { display: grid; gap: 7px; color: var(--muted); font-size: 13px; }
   border-bottom: 1px solid var(--line);
   text-align: left;
   vertical-align: top;
+}
+.post-table .select-col {
+  width: 64px;
+  text-align: center;
 }
 .post-table th {
   position: sticky;
@@ -359,7 +394,25 @@ label { display: grid; gap: 7px; color: var(--muted); font-size: 13px; }
 .category-row, .ad-row {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
-.category-row button, .ad-row button {
+.sidebar-link-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.footer-link-row {
+  grid-template-columns: minmax(120px, .4fr) minmax(0, 1fr) minmax(0, 1.4fr) auto;
+}
+.form-section-title {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+.form-section-title strong {
+  font-size: 15px;
+}
+.form-section-title span {
+  color: var(--muted);
+  font-size: 13px;
+}
+.category-row button, .ad-row button, .sidebar-link-row button, .footer-link-row button {
   justify-self: start;
 }
 .stats-panel {
@@ -397,8 +450,8 @@ label { display: grid; gap: 7px; color: var(--muted); font-size: 13px; }
   .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .manager-head { flex-direction: column; }
   .manager-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .manager-filters, .editor-grid { grid-template-columns: 1fr; }
-  .structured-row, .category-row, .ad-row { grid-template-columns: 1fr; }
+  .manager-filters, .bulk-bar, .editor-grid { grid-template-columns: 1fr; }
+  .structured-row, .category-row, .ad-row, .sidebar-link-row, .footer-link-row { grid-template-columns: 1fr; }
   .admin-nav { display: flex; gap: 8px; overflow-x: auto; }
   .admin-nav h1 { display: none; }
   .admin-nav button { width: auto; white-space: nowrap; }

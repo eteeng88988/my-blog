@@ -3,11 +3,15 @@ title: 第一篇文章：博客开始运行
 date: 2026-06-26
 showDate: true
 category: 建站记录
+categories: 建站记录
 subcategory: Cloudflare
+subcategories: Cloudflare
 tags: Cloudflare,GitHub,博客
 cover: https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80
 summary: 这是一篇示例文章，用来验证前台文章列表、封面、分类、标签和 Markdown 渲染效果。
 featured: true
+status: published
+format: 
 ---
 
 这个博客的第一版采用 GitHub + Cloudflare Pages 的方式。

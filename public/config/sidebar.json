@@ -1,8 +1,30 @@
 {
   "avatar": "https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=320&q=80",
   "name": "Lexiao",
-  "bio": "Building a personal publishing space with simple, stable tools.",
-  "github": "https://github.com/eteeng88988",
-  "email": "hello@example.com",
-  "notice": "Admin edits write back to GitHub, then Cloudflare Pages redeploys automatically."
+  "bio": "整理项目、方法和内容资产的个人发布空间。",
+  "notice": "后台已支持文章批量发布、分类目录、广告位、统计、侧边栏和底栏编辑。",
+  "links": [
+    {
+      "label": "联系作者",
+      "type": "link",
+      "url": "/article.html?file=%2Fcontent%2Fpages%2Fcontact.md",
+      "enabled": true,
+      "html": ""
+    },
+    {
+      "label": "广告合作",
+      "type": "link",
+      "url": "/article.html?file=%2Fcontent%2Fpages%2Fadvertising.md",
+      "enabled": true,
+      "html": ""
+    },
+    {
+      "label": "自定义代码",
+      "type": "html",
+      "url": "",
+      "enabled": false,
+      "html": "<span>这里可以放微信二维码、客服入口或其他 HTML</span>"
+    }
+  ],
+  "customHtml": ""
 }

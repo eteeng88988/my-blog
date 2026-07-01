@@ -1,4 +1,4 @@
-import { getJson, renderAdSlots, trackPageView } from "./runtime.js";
+import { getJson, renderAdSlots, renderFooter, trackPageView } from "./runtime.js";
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -32,15 +32,16 @@ function renderMedia(items) {
 }
 
 async function init() {
-  const [site, menu, theme, media] = await Promise.all([
+  const [site, menu, theme, footer, media] = await Promise.all([
     getJson("/config/site.json"),
     getJson("/config/menu.json"),
     getJson("/config/theme.json"),
+    getJson("/config/footer.json").catch(() => ({})),
     getJson("/content/media.json")
   ]);
   document.title = `媒体库 - ${site.title}`;
   $("[data-site-title]").textContent = site.title;
-  $("[data-site-footer]").textContent = site.copyright || `© ${new Date().getFullYear()} ${site.title}`;
+  renderFooter(site, footer);
   renderMenu(menu);
   setupTheme(theme);
   renderMedia(media);

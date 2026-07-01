@@ -7,8 +7,11 @@ let mediaItems = [];
 let menuItems = [];
 let categoryConfig = { items: [] };
 let adConfig = { placements: [] };
+let sidebarConfig = { links: [] };
+let footerConfig = { links: [] };
 let activePost = null;
 let activePage = null;
+let selectedPostPaths = new Set();
 let postManager = {
   search: "",
   status: "all",
@@ -96,10 +99,62 @@ function selectedValues(select) {
   return [...select.selectedOptions].map((option) => option.value).filter(Boolean);
 }
 
-function buildPostMarkdown(values) {
+const postFrontmatterOrder = [
+  "title",
+  "date",
+  "showDate",
+  "category",
+  "categories",
+  "subcategory",
+  "subcategories",
+  "tags",
+  "cover",
+  "summary",
+  "featured",
+  "status",
+  "format",
+  "sourceCollection",
+  "sourceNumber",
+  "sourceStartPage",
+  "sourceEndPage",
+  "sourceBodySha256"
+];
+
+function frontmatterLineValue(value) {
+  if (Array.isArray(value)) return joinValues(value);
+  return String(value ?? "").replace(/\r?\n/g, " ").trim();
+}
+
+function buildMarkdownFromMeta(meta, body) {
+  const keys = [
+    ...postFrontmatterOrder.filter((key) => Object.prototype.hasOwnProperty.call(meta, key)),
+    ...Object.keys(meta).filter((key) => !postFrontmatterOrder.includes(key))
+  ];
+  const frontmatter = keys
+    .filter((key) => meta[key] !== undefined && meta[key] !== null)
+    .map((key) => `${key}: ${frontmatterLineValue(meta[key])}`)
+    .join("\n");
+  return `---\n${frontmatter}\n---\n\n${body || ""}`;
+}
+
+function buildPostMarkdown(values, baseMeta = {}) {
   const categories = joinValues(values.categories);
   const subcategories = joinValues(values.subcategories);
-  return `---\ntitle: ${values.title}\ndate: ${values.date}\nshowDate: ${values.showDate === "false" ? "false" : "true"}\ncategory: ${categories}\ncategories: ${categories}\nsubcategory: ${subcategories}\nsubcategories: ${subcategories}\ntags: ${values.tags}\ncover: ${values.cover}\nsummary: ${values.summary}\nfeatured: ${values.featured === "true" ? "true" : "false"}\nstatus: ${values.status || "published"}\n---\n\n${values.body || ""}`;
+  return buildMarkdownFromMeta({
+    ...baseMeta,
+    title: values.title,
+    date: values.date,
+    showDate: values.showDate === "false" ? "false" : "true",
+    category: categories,
+    categories,
+    subcategory: subcategories,
+    subcategories,
+    tags: values.tags,
+    cover: values.cover,
+    summary: values.summary,
+    featured: values.featured === "true" ? "true" : "false",
+    status: values.status || "published"
+  }, values.body || "");
 }
 
 function buildPageMarkdown(values) {
@@ -374,6 +429,34 @@ function filteredPosts() {
   });
 }
 
+function currentPagePosts(result = filteredPosts()) {
+  const totalPages = Math.max(1, Math.ceil(result.length / postManager.pageSize));
+  postManager.page = Math.min(Math.max(postManager.page, 1), totalPages);
+  const start = (postManager.page - 1) * postManager.pageSize;
+  return result.slice(start, start + postManager.pageSize);
+}
+
+function updateSelectionControls(pageItems, result) {
+  const count = selectedPostPaths.size;
+  const countEl = $("[data-selected-post-count]");
+  if (countEl) countEl.textContent = `已选 ${count} 篇`;
+
+  const pageToggle = $("[data-select-page-posts]");
+  if (pageToggle) {
+    const pagePaths = pageItems.map((post) => post.path);
+    const selectedOnPage = pagePaths.filter((path) => selectedPostPaths.has(path)).length;
+    pageToggle.checked = pagePaths.length > 0 && selectedOnPage === pagePaths.length;
+    pageToggle.indeterminate = selectedOnPage > 0 && selectedOnPage < pagePaths.length;
+  }
+
+  const applyButton = $("[data-apply-post-status]");
+  if (applyButton) applyButton.disabled = count === 0;
+  const clearButton = $("[data-clear-post-selection]");
+  if (clearButton) clearButton.disabled = count === 0;
+  const filteredButton = $("[data-select-filtered-posts]");
+  if (filteredButton) filteredButton.disabled = result.length === 0;
+}
+
 function renderPostManager() {
   const table = $("[data-post-table]");
   if (!table) return;
@@ -381,8 +464,7 @@ function renderPostManager() {
   const result = filteredPosts();
   const totalPages = Math.max(1, Math.ceil(result.length / postManager.pageSize));
   postManager.page = Math.min(Math.max(postManager.page, 1), totalPages);
-  const start = (postManager.page - 1) * postManager.pageSize;
-  const pageItems = result.slice(start, start + postManager.pageSize);
+  const pageItems = currentPagePosts(result);
   const draftCount = posts.filter((post) => normalizePostStatus(post.meta) === "draft").length;
 
   $("[data-post-total]").textContent = posts.length;
@@ -403,6 +485,9 @@ function renderPostManager() {
       .join("");
     return `
       <tr class="${activePost?.path === post.path ? "active" : ""}">
+        <td class="select-col">
+          <input type="checkbox" data-select-post="${escapeHtml(post.path)}" ${selectedPostPaths.has(post.path) ? "checked" : ""} aria-label="选择文章">
+        </td>
         <td>
           <div class="title-cell">
             <strong>${escapeHtml(post.meta.title || post.path)}</strong>
@@ -426,6 +511,14 @@ function renderPostManager() {
   $$("[data-edit-post]").forEach((button) => {
     button.addEventListener("click", () => selectPost(button.dataset.editPost));
   });
+  $$("[data-select-post]").forEach((checkbox) => {
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) selectedPostPaths.add(checkbox.dataset.selectPost);
+      else selectedPostPaths.delete(checkbox.dataset.selectPost);
+      updateSelectionControls(pageItems, result);
+    });
+  });
+  updateSelectionControls(pageItems, result);
 }
 
 function selectPost(path) {
@@ -479,6 +572,7 @@ async function loadMarkdownDirectory(prefix) {
 async function loadPosts() {
   setStatus("正在读取文章...");
   posts = await loadMarkdownDirectory("public/content/posts");
+  selectedPostPaths = new Set([...selectedPostPaths].filter((path) => posts.some((post) => post.path === path)));
   if (activePost) activePost = posts.find((post) => post.path === activePost.path) || null;
   renderPostManager();
   setStatus("文章已读取");
@@ -518,6 +612,138 @@ async function loadConfig(form) {
   const path = form.dataset.configForm;
   const file = await api(`/file?path=${encodeURIComponent(path)}`);
   fillForm(form, JSON.parse(file.content));
+}
+
+function normalizeSidebarLinks(config = {}) {
+  const legacy = [
+    config.github ? { label: "GitHub", type: "link", url: config.github, enabled: true, html: "" } : null,
+    config.email ? { label: "邮箱", type: "email", url: config.email, enabled: true, html: "" } : null
+  ].filter(Boolean);
+  const links = Array.isArray(config.links) ? config.links : legacy;
+  return links.map((item) => ({
+    label: item.label || "",
+    type: item.type || "link",
+    url: item.url || item.href || "",
+    enabled: item.enabled !== false,
+    html: item.html || ""
+  }));
+}
+
+async function loadSidebar() {
+  const file = await api(`/file?path=${encodeURIComponent("public/config/sidebar.json")}`);
+  sidebarConfig = JSON.parse(file.content);
+  sidebarConfig.links = normalizeSidebarLinks(sidebarConfig);
+  const form = $("[data-sidebar-form]");
+  fillForm(form, {
+    avatar: sidebarConfig.avatar || "",
+    name: sidebarConfig.name || "",
+    bio: sidebarConfig.bio || "",
+    notice: sidebarConfig.notice || "",
+    customHtml: sidebarConfig.customHtml || ""
+  });
+  renderSidebarEditor();
+}
+
+function renderSidebarEditor() {
+  const typeOptions = [
+    { value: "link", label: "普通链接" },
+    { value: "email", label: "邮箱" },
+    { value: "tel", label: "电话" },
+    { value: "wechat", label: "微信/QQ" },
+    { value: "html", label: "自定义 HTML" }
+  ];
+  $("[data-sidebar-links]").innerHTML = normalizeSidebarLinks(sidebarConfig).map((item, index) => `
+    <div class="structured-row sidebar-link-row" data-sidebar-link-row="${index}">
+      <label>启用
+        <select data-sidebar-link-enabled>
+          <option value="true" ${item.enabled ? "selected" : ""}>显示</option>
+          <option value="false" ${!item.enabled ? "selected" : ""}>隐藏</option>
+        </select>
+      </label>
+      <label>名称<input data-sidebar-link-label value="${escapeHtml(item.label)}" placeholder="例如：商务合作"></label>
+      <label>类型<select data-sidebar-link-type>${objectOptionList(typeOptions, [item.type])}</select></label>
+      <label>链接或账号<input data-sidebar-link-url value="${escapeHtml(item.url)}" placeholder="https:// 或 邮箱/电话/微信号"></label>
+      <label>自定义 HTML<textarea data-sidebar-link-html rows="4">${escapeHtml(item.html)}</textarea></label>
+      <button type="button" data-remove-sidebar-link="${index}">删除</button>
+    </div>
+  `).join("");
+  $$("[data-remove-sidebar-link]").forEach((button) => {
+    button.addEventListener("click", () => {
+      sidebarConfig.links.splice(Number(button.dataset.removeSidebarLink), 1);
+      renderSidebarEditor();
+    });
+  });
+}
+
+function collectSidebarConfig() {
+  const form = $("[data-sidebar-form]");
+  const values = readForm(form);
+  return {
+    avatar: values.avatar || "",
+    name: values.name || "",
+    bio: values.bio || "",
+    notice: values.notice || "",
+    customHtml: values.customHtml || "",
+    links: $$("[data-sidebar-link-row]").map((row) => ({
+      enabled: row.querySelector("[data-sidebar-link-enabled]").value === "true",
+      label: row.querySelector("[data-sidebar-link-label]").value.trim(),
+      type: row.querySelector("[data-sidebar-link-type]").value,
+      url: row.querySelector("[data-sidebar-link-url]").value.trim(),
+      html: row.querySelector("[data-sidebar-link-html]").value.trim()
+    })).filter((item) => item.label || item.html)
+  };
+}
+
+async function loadFooter() {
+  let config = { text: "", links: [], html: "" };
+  try {
+    const file = await api(`/file?path=${encodeURIComponent("public/config/footer.json")}`);
+    config = JSON.parse(file.content);
+  } catch {
+    config = { text: "", links: [], html: "" };
+  }
+  footerConfig = {
+    text: config.text || "",
+    links: Array.isArray(config.links) ? config.links : [],
+    html: config.html || ""
+  };
+  fillForm($("[data-footer-form]"), footerConfig);
+  renderFooterEditor();
+}
+
+function renderFooterEditor() {
+  $("[data-footer-links]").innerHTML = (footerConfig.links || []).map((item, index) => `
+    <div class="structured-row footer-link-row" data-footer-link-row="${index}">
+      <label>启用
+        <select data-footer-link-enabled>
+          <option value="true" ${item.enabled !== false ? "selected" : ""}>显示</option>
+          <option value="false" ${item.enabled === false ? "selected" : ""}>隐藏</option>
+        </select>
+      </label>
+      <label>名称<input data-footer-link-label value="${escapeHtml(item.label || "")}" placeholder="例如：隐私政策"></label>
+      <label>链接<input data-footer-link-href value="${escapeHtml(item.href || "")}" placeholder="/article.html?file=..."></label>
+      <button type="button" data-remove-footer-link="${index}">删除</button>
+    </div>
+  `).join("");
+  $$("[data-remove-footer-link]").forEach((button) => {
+    button.addEventListener("click", () => {
+      footerConfig.links.splice(Number(button.dataset.removeFooterLink), 1);
+      renderFooterEditor();
+    });
+  });
+}
+
+function collectFooterConfig() {
+  const values = readForm($("[data-footer-form]"));
+  return {
+    text: values.text || "",
+    html: values.html || "",
+    links: $$("[data-footer-link-row]").map((row) => ({
+      enabled: row.querySelector("[data-footer-link-enabled]").value === "true",
+      label: row.querySelector("[data-footer-link-label]").value.trim(),
+      href: row.querySelector("[data-footer-link-href]").value.trim()
+    })).filter((item) => item.label && item.href)
+  };
 }
 
 async function loadMenu() {
@@ -798,6 +1024,8 @@ async function loadAllAdminData() {
   await Promise.all([
     loadCategories(),
     ...$$("[data-config-form]").map(loadConfig),
+    loadSidebar(),
+    loadFooter(),
     loadMenu(),
     loadMedia(),
     loadAnalyticsConfig(),
@@ -879,7 +1107,7 @@ function setupPostEditor() {
       subcategories: selectedValues(event.currentTarget.elements.subcategories)
     };
     const path = values.path || `public/content/posts/${slugify(values.title, "post")}.md`;
-    const content = buildPostMarkdown(values);
+    const content = buildPostMarkdown(values, activePost?.meta || {});
     await api("/file", {
       method: "PUT",
       body: JSON.stringify({ path, content, message: `Update ${path}` })
@@ -909,6 +1137,38 @@ function setupPostEditor() {
   });
 }
 
+async function writePostWithStatus(post, status) {
+  const content = buildMarkdownFromMeta({ ...post.meta, status }, post.body);
+  await api("/file", {
+    method: "PUT",
+    body: JSON.stringify({ path: post.path, content, message: `Set ${post.path} ${status}` })
+  });
+  post.meta.status = status;
+}
+
+async function applyBulkPostStatus() {
+  const status = $("[data-bulk-status]").value;
+  const targets = posts.filter((post) => selectedPostPaths.has(post.path));
+  if (!targets.length) {
+    setStatus("请先选择要操作的文章。");
+    return;
+  }
+  if (!confirm(`确认将 ${targets.length} 篇文章设为${status === "published" ? "公开发布" : "草稿"}？`)) return;
+
+  for (let index = 0; index < targets.length; index += 1) {
+    const post = targets[index];
+    setStatus(`正在更新文章状态：${index + 1} / ${targets.length}`);
+    await writePostWithStatus(post, status);
+  }
+
+  await syncIndex(posts, null, "public/content/posts/index.json");
+  await syncGeneratedSiteFiles();
+  selectedPostPaths.clear();
+  await loadPosts();
+  renderDashboard();
+  setStatus(`已将 ${targets.length} 篇文章设为${status === "published" ? "公开发布" : "草稿"}，索引、RSS 和站点地图已更新。`);
+}
+
 function setupPostManager() {
   const search = $("[data-post-search]");
   const status = $("[data-post-status-filter]");
@@ -934,6 +1194,29 @@ function setupPostManager() {
   });
   subcategory.addEventListener("change", update);
   sort.addEventListener("change", update);
+  $("[data-select-page-posts]").addEventListener("change", (event) => {
+    const result = filteredPosts();
+    currentPagePosts(result).forEach((post) => {
+      if (event.currentTarget.checked) selectedPostPaths.add(post.path);
+      else selectedPostPaths.delete(post.path);
+    });
+    renderPostManager();
+  });
+  $("[data-select-filtered-posts]").addEventListener("click", () => {
+    filteredPosts().forEach((post) => selectedPostPaths.add(post.path));
+    renderPostManager();
+  });
+  $("[data-select-all-posts]").addEventListener("click", () => {
+    posts.forEach((post) => selectedPostPaths.add(post.path));
+    renderPostManager();
+  });
+  $("[data-clear-post-selection]").addEventListener("click", () => {
+    selectedPostPaths.clear();
+    renderPostManager();
+  });
+  $("[data-apply-post-status]").addEventListener("click", () => {
+    applyBulkPostStatus().catch((error) => setStatus(error.message));
+  });
   $("[data-post-prev]").addEventListener("click", () => {
     postManager.page -= 1;
     renderPostManager();
@@ -1009,6 +1292,52 @@ function setupConfigForms() {
         ? "站点配置、RSS 和站点地图已保存。"
         : "配置已保存。");
     });
+  });
+}
+
+function setupSidebarForm() {
+  const form = $("[data-sidebar-form]");
+  $("[data-add-sidebar-link]").addEventListener("click", () => {
+    sidebarConfig.links = normalizeSidebarLinks(sidebarConfig);
+    sidebarConfig.links.push({ label: "", type: "link", url: "", enabled: true, html: "" });
+    renderSidebarEditor();
+    setStatus("已新增侧边栏联系方式标签。");
+  });
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    sidebarConfig = collectSidebarConfig();
+    await api("/file", {
+      method: "PUT",
+      body: JSON.stringify({
+        path: "public/config/sidebar.json",
+        content: `${JSON.stringify(sidebarConfig, null, 2)}\n`,
+        message: "Update sidebar"
+      })
+    });
+    setStatus("侧边栏已保存，前台联系方式名称和自定义标签会同步更新。");
+  });
+}
+
+function setupFooterForm() {
+  const form = $("[data-footer-form]");
+  $("[data-add-footer-link]").addEventListener("click", () => {
+    footerConfig.links = footerConfig.links || [];
+    footerConfig.links.push({ label: "", href: "/", enabled: true });
+    renderFooterEditor();
+    setStatus("已新增底栏链接。");
+  });
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    footerConfig = collectFooterConfig();
+    await api("/file", {
+      method: "PUT",
+      body: JSON.stringify({
+        path: "public/config/footer.json",
+        content: `${JSON.stringify(footerConfig, null, 2)}\n`,
+        message: "Update footer"
+      })
+    });
+    setStatus("底栏已保存。");
   });
 }
 
@@ -1169,6 +1498,8 @@ setupPostManager();
 setupPostEditor();
 setupPageEditor();
 setupConfigForms();
+setupSidebarForm();
+setupFooterForm();
 setupCategoriesForm();
 setupMenuForm();
 setupAdsForm();
