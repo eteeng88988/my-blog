@@ -272,6 +272,8 @@ async function init() {
   const posts = (await loadPostsFromIndex(postIndex)).sort((a, b) => b.meta.date.localeCompare(a.meta.date));
   renderSidebar(sidebar, posts.filter((post) => post.meta.status !== "draft"), categories);
   const { meta, body } = parseFrontMatter(await res.text(), file);
+  const indexPost = posts.find((post) => post.path === file);
+  if (!meta.cover && indexPost?.meta.cover) meta.cover = indexPost.meta.cover;
   const pageType = file.startsWith("/content/posts/") ? "article" : "page";
   document.title = meta.title || "Article";
   const metaItems = [
