@@ -100,6 +100,11 @@ function renderMenu(menu) {
 function renderSite(site) {
   document.title = site.title;
   $("[data-site-title]").textContent = site.title;
+  const eyebrow = $("[data-site-eyebrow]");
+  if (eyebrow) {
+    eyebrow.textContent = site.heroEyebrow || "";
+    eyebrow.hidden = !site.heroEyebrow;
+  }
   $("[data-site-subtitle]").textContent = site.subtitle;
   $("[data-site-description]").textContent = site.description;
   if (site.heroImage) $("[data-hero]").style.backgroundImage = `url("${site.heroImage}")`;

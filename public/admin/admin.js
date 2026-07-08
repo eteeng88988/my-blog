@@ -257,6 +257,7 @@ function normalizeConfig(path, values) {
   if (path.endsWith("site.json")) {
     return {
       title: values.title || "My Blog",
+      heroEyebrow: values.heroEyebrow || "",
       subtitle: values.subtitle || "",
       description: values.description || "",
       author: values.author || "",
