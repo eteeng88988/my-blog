@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-label="没有 IP就没有流量，更不可能变现">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22223B"/>
+      <stop offset="0.58" stop-color="#111827"/>
+      <stop offset="1" stop-color="#C9ADA7"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="78%" cy="18%" r="55%">
+      <stop offset="0" stop-color="#F2E9E4" stop-opacity="0.48"/>
+      <stop offset="1" stop-color="#F2E9E4" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="675" fill="url(#bg)"/>
+  <rect width="1200" height="675" fill="url(#glow)"/>
+  <rect width="1200" height="675" fill="url(#grid)"/>
+  <circle cx="1010" cy="95" r="190" fill="#F2E9E4" opacity="0.13"/>
+  <circle cx="108" cy="578" r="260" fill="#C9ADA7" opacity="0.18"/>
+  <path d="M88 120H440" stroke="#F2E9E4" stroke-width="4" stroke-linecap="round" opacity="0.78"/>
+  <text x="88" y="178" fill="#F2E9E4" font-size="34" font-weight="700" font-family="Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Arial, sans-serif">引流获客·搜索推广</text>
+  <text x="88" y="315" fill="#ffffff" font-size="58" font-weight="800" font-family="Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Arial, sans-serif">没有 IP就没有流量，更不可能变现</text>
+  <text x="88" y="585" fill="#ffffff" opacity="0.62" font-size="26" font-weight="600" font-family="Arial, sans-serif">MONEY PLAYBOOK / 391</text>
+  <rect x="930" y="515" width="178" height="72" rx="36" fill="#ffffff" opacity="0.14"/>
+  <text x="1019" y="562" text-anchor="middle" fill="#ffffff" font-size="28" font-weight="700" font-family="Arial, sans-serif">BLOG</text>
+</svg>

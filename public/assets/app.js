@@ -1,4 +1,4 @@
-import { getJson, getText, renderAdSlots, renderFooter, trackPageView } from "./runtime.js";
+import { getJson, getText, renderAdSlots, renderFooter, resolvePostCover, trackPageView } from "./runtime.js";
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -182,10 +182,11 @@ function renderCategoryTree(categoryConfig, posts, onFilter, selector = "[data-c
 }
 
 function renderCover(post) {
-  if (post.cover) {
+  const cover = resolvePostCover(post);
+  if (cover) {
     return `
       <a class="post-cover" href="${articleHref(post.path)}">
-        <img src="${escapeHtml(post.cover)}" alt="">
+        <img src="${escapeHtml(cover)}" alt="">
       </a>
     `;
   }

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-label="一招轻松借力，玩转互联网顶层玩家">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0F3D3E"/>
+      <stop offset="0.58" stop-color="#111827"/>
+      <stop offset="1" stop-color="#22A39F"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="78%" cy="18%" r="55%">
+      <stop offset="0" stop-color="#F3EFE0" stop-opacity="0.48"/>
+      <stop offset="1" stop-color="#F3EFE0" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="675" fill="url(#bg)"/>
+  <rect width="1200" height="675" fill="url(#glow)"/>
+  <rect width="1200" height="675" fill="url(#grid)"/>
+  <circle cx="1010" cy="95" r="190" fill="#F3EFE0" opacity="0.13"/>
+  <circle cx="108" cy="578" r="260" fill="#22A39F" opacity="0.18"/>
+  <path d="M88 120H440" stroke="#F3EFE0" stroke-width="4" stroke-linecap="round" opacity="0.78"/>
+  <text x="88" y="178" fill="#F3EFE0" font-size="34" font-weight="700" font-family="Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Arial, sans-serif">副业方法论·创业认知</text>
+  <text x="88" y="315" fill="#ffffff" font-size="58" font-weight="800" font-family="Microsoft YaHei, PingFang SC, Noto Sans CJK SC, Arial, sans-serif">一招轻松借力，玩转互联网顶层玩家</text>
+  <text x="88" y="585" fill="#ffffff" opacity="0.62" font-size="26" font-weight="600" font-family="Arial, sans-serif">MONEY PLAYBOOK / 395</text>
+  <rect x="930" y="515" width="178" height="72" rx="36" fill="#ffffff" opacity="0.14"/>
+  <text x="1019" y="562" text-anchor="middle" fill="#ffffff" font-size="28" font-weight="700" font-family="Arial, sans-serif">BLOG</text>
+</svg>

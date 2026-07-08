@@ -8,6 +8,25 @@ export function contentUrl(path) {
   return path;
 }
 
+export function generatedCoverPath(path = "") {
+  const slug = String(path)
+    .replace(/^\/?content\/posts\//, "")
+    .replace(/^public\/content\/posts\//, "")
+    .replace(/\.md$/i, "")
+    .replace(/[^a-z0-9_-]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
+  return slug ? `/assets/generated-covers/${slug}.svg` : "";
+}
+
+export function resolvePostCover(post = {}) {
+  const path = post.path || "";
+  const cover = String(post.cover || post.meta?.cover || "").trim();
+  const isBatchPost = /\/money-playbook\//.test(path);
+  if (isBatchPost) return generatedCoverPath(path) || cover;
+  return cover || generatedCoverPath(path);
+}
+
 export async function getJson(path) {
   const res = await fetch(contentUrl(path), { cache: "no-store" });
   if (!res.ok) throw new Error(`Cannot load ${path}`);

@@ -1,4 +1,4 @@
-import { contentUrl, getJson, getText, renderAdSlots, renderFooter, trackPageView } from "./runtime.js";
+import { contentUrl, getJson, getText, renderAdSlots, renderFooter, resolvePostCover, trackPageView } from "./runtime.js";
 
 const article = document.querySelector("[data-article]");
 const toggle = document.querySelector("[data-theme-toggle]");
@@ -274,6 +274,7 @@ async function init() {
   const { meta, body } = parseFrontMatter(await res.text(), file);
   const indexPost = posts.find((post) => post.path === file);
   if (indexPost?.meta.cover) meta.cover = indexPost.meta.cover;
+  const cover = resolvePostCover({ path: file, meta });
   const pageType = file.startsWith("/content/posts/") ? "article" : "page";
   if (pageType === "article" && (meta.status === "draft" || indexPost?.meta.status === "draft")) {
     document.title = "文章未发布";
@@ -292,7 +293,7 @@ async function init() {
   ];
   article.innerHTML = `
     <a class="article-back" href="/">返回首页</a>
-    ${meta.cover ? `<img class="article-cover" src="${escapeHtml(meta.cover)}" alt="">` : ""}
+    ${cover ? `<img class="article-cover" src="${escapeHtml(cover)}" alt="">` : ""}
     <section class="ad-region" data-ad-slot="article-top" hidden></section>
     <div class="post-meta">${metaItems.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}</div>
     <h1>${escapeHtml(meta.title || "Untitled")}</h1>
