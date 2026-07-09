@@ -1,6 +1,13 @@
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 
+const ADMIN_HOST = "liuzhenhua.eu.org";
+const LOCAL_ADMIN_HOSTS = new Set(["localhost", "127.0.0.1"]);
+
+if (location.hostname !== ADMIN_HOST && !LOCAL_ADMIN_HOSTS.has(location.hostname)) {
+  location.replace(`https://${ADMIN_HOST}${location.pathname}${location.search}${location.hash}`);
+}
+
 let posts = [];
 let pages = [];
 let mediaItems = [];

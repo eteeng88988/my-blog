@@ -14,6 +14,15 @@ function getEnv(env, name, fallback = "") {
   return env[name] || fallback;
 }
 
+function adminHost(env) {
+  return getEnv(env, "ADMIN_HOST", "liuzhenhua.eu.org").toLowerCase();
+}
+
+function isAllowedAdminHost(request, env) {
+  const host = new URL(request.url).hostname.toLowerCase();
+  return host === adminHost(env) || host === "localhost" || host === "127.0.0.1";
+}
+
 function hasR2(env) {
   return env.BLOG_CONTENT && typeof env.BLOG_CONTENT.get === "function";
 }
@@ -517,6 +526,10 @@ async function readStats(env) {
 export async function onRequest(context) {
   try {
     const { request, env, params } = context;
+    if (!isAllowedAdminHost(request, env)) {
+      return json({ error: "Admin API is only available on liuzhenhua.eu.org" }, { status: 403 });
+    }
+
     const action = Array.isArray(params.path) ? params.path.join("/") : (params.path || "");
 
     if (request.method === "POST" && action === "login") {
